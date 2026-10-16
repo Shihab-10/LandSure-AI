@@ -7,10 +7,10 @@ import {
   Search, Send, ShieldCheck, Sparkles, X
 } from "lucide-react";
 import {
-  DEMO_MODE,
   apiRequest,
   fetchCurrentUser,
   loginUser,
+  loginDemoUser,
   type AuthUser,
 } from "./api";
 
@@ -32,27 +32,6 @@ type ParcelDetails = {
   parcel_id: string;
   [key: string]: unknown;
 };
-
-const DEMO = DEMO_MODE;
-
-const DEMO_EVIDENCE: Evidence[] = [
-  {
-    source_table: "mutations",
-    source_record_id: "DEMO-MUT-01",
-    data: {
-      mutation_status: "Requires review",
-      review_reason: "Sample record — not verified"
-    }
-  },
-  {
-    source_table: "survey_records",
-    source_record_id: "DEMO-SURVEY-01",
-    data: {
-      survey_type: "RS",
-      record_presence: "Sample only"
-    }
-  }
-];
 
 const navigation = [
   { id: "dashboard", label: "Overview", icon: LayoutDashboard },
@@ -118,6 +97,27 @@ function App() {
     }
   }
 
+  async function loginDemo() {
+    setLoginError("");
+    setBusy(true);
+
+    try {
+      const jwt = await loginDemoUser();
+      setToken(jwt);
+      setUser(await fetchCurrentUser(jwt));
+      setPassword("");
+      setError("");
+    } catch (e) {
+      setLoginError(
+        e instanceof Error
+          ? e.message
+          : "ডেমো সার্ভারের সাথে সংযোগ করা যাচ্ছে না। অনুগ্রহ করে ব্যাকএন্ড চালু আছে কিনা যাচাই করুন।"
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function logout() {
     setToken("");
     setUser(null);
@@ -128,7 +128,7 @@ function App() {
   }
 
   async function loadParcelDetails() {
-    if (DEMO || !token || !parcelId.trim()) return;
+    if (!token || !parcelId.trim()) return;
 
     try {
       const data = await apiRequest<{ parcel?: ParcelDetails }>(`/api/v1/parcels/${encodeURIComponent(parcelId.trim())}`, { token });
@@ -147,30 +147,20 @@ function App() {
     setResult(null);
 
     try {
-      if (DEMO) {
-        setResult({
-          status: "DEMO_ONLY",
-          topic: "mutation",
-          parcel_id: parcelId,
-          answer: "This is a sample interface response. Connect the authenticated backend to retrieve actual synthetic evidence.",
-          evidence: DEMO_EVIDENCE
-        });
-      } else {
-        if (!token) throw new Error("Authentication required. Please sign in.");
+      if (!token) throw new Error("Authentication required. Please sign in or use Demo mode.");
 
-        const data = await apiRequest<CopilotResult>("/api/v1/copilot/evidence", {
-          method: "POST",
-          token,
-          body: JSON.stringify({
-            question: question.trim(),
-            parcel_id: parcelId.trim() || null
-          })
-        });
+      const data = await apiRequest<CopilotResult>("/api/v1/copilot/evidence", {
+        method: "POST",
+        token,
+        body: JSON.stringify({
+          question: question.trim(),
+          parcel_id: parcelId.trim() || null
+        })
+      });
 
-        setResult(data);
-        if (parcelId.trim()) {
-          await loadParcelDetails();
-        }
+      setResult(data);
+      if (parcelId.trim()) {
+        await loadParcelDetails();
       }
       setPage("copilot");
     } catch (e) {
@@ -180,8 +170,8 @@ function App() {
     }
   }
 
-  const evidence = result?.evidence || (DEMO ? DEMO_EVIDENCE : []);
-  const authenticated = !DEMO && Boolean(token && user);
+  const evidence = result?.evidence || [];
+  const authenticated = Boolean(token && user);
 
   if (!authenticated) {
     return (
@@ -204,8 +194,20 @@ function App() {
             {busy ? "Signing in..." : "Sign in securely"}
             <ArrowRight size={17}/>
           </button>
+          <div className="login-divider">
+            <span>অথবা / OR</span>
+          </div>
+          <button
+            type="button"
+            className="demo-btn"
+            disabled={busy}
+            onClick={loginDemo}
+          >
+            <Sparkles size={17}/>
+            <span>ডেমো ব্যবহার করুন &nbsp;•&nbsp; Try Demo</span>
+          </button>
           <div className="login-footer">
-            <ShieldCheck size={15}/> JWT-protected API access
+            <ShieldCheck size={15}/> JWT-protected API access · 30-min Demo Session
           </div>
         </form>
       </div>
@@ -244,7 +246,7 @@ function App() {
             <div className="avatar">{user?.username.slice(0, 2).toUpperCase() || "LS"}</div>
             <div className="profile-name">
               <strong>{user?.username || "Workspace User"}</strong>
-              <span>{user?.role ? `${user.role} access` : "Authenticated session"}</span>
+              <span>{user?.role === "demo" ? "ডেমো সেশন • Demo Session" : `${user?.role ? `${user.role} access` : "Authenticated session"}`}</span>
             </div>
             <button title="Log out" className="icon-button" onClick={logout}><LogOut size={17}/></button>
           </div>
@@ -263,9 +265,9 @@ function App() {
             <strong>{navigation.find(n => n.id === page)?.label}</strong>
           </div>
           <div className="topbar-right">
-            <span className={`environment ${DEMO ? "demo" : ""}`}>
+            <span className={`environment ${user?.role === "demo" ? "demo" : ""}`}>
               <span className="status-dot"/>
-              {DEMO ? "Demo Mode" : `API Connected · ${user?.role ?? "user"}`}
+              {user?.role === "demo" ? "ডেমো মোড (Demo Mode)" : `API Connected · ${user?.role ?? "user"}`}
             </span>
             <div className="top-avatar">{user?.username.slice(0, 2).toUpperCase() || "LS"}</div>
           </div>
@@ -305,7 +307,7 @@ function App() {
               <div className="stats-grid">
                 {[
                   { label: "Data environment", value: "Synthetic", icon: Database, note: "Development dataset" },
-                  { label: "Protected API", value: DEMO ? "Not connected" : "Connected", icon: LockKeyhole, note: "JWT-based access" },
+                  { label: "Protected API", value: "Connected", icon: LockKeyhole, note: user?.role === "demo" ? "Demo JWT access" : "JWT-based access" },
                   { label: "Evidence sources", value: "SQLite", icon: FileCheck2, note: "Read-only retrieval" },
                   { label: "Verification status", value: "Prototype", icon: Activity, note: "Not legal certification" }
                 ].map(stat => {
@@ -369,7 +371,7 @@ function App() {
                     {busy ? "Searching..." : "Search records"} <ArrowRight size={17}/>
                   </button>
                 </div>
-                <p className="helper">{DEMO ? "Demo mode: results are illustrative, not fetched from the database." : "Requests use your authenticated backend session."}</p>
+                <p className="helper">{user?.role === "demo" ? "ডেমো মোড: সিনথেটিক ডেটাবেজ থেকে লাইভ রেকর্ড অনুসন্ধান করা হচ্ছে।" : "Requests use your authenticated backend session."}</p>
               </div>
 
               {parcelDetails && (
@@ -489,7 +491,7 @@ function App() {
                 </div>
               </div>
 
-              {DEMO && <div className="demo-banner"><CircleHelp size={18}/> Showing sample records. No live database verification.</div>}
+              {user?.role === "demo" && <div className="demo-banner"><CircleHelp size={18}/> ডেমো মোড: সিনথেটিক রেকর্ড দেখানো হচ্ছে। এটি কোনো অফিসিয়াল আইনি দলিল নয়।</div>}
 
               {evidence.length === 0 ? (
                 <div className="panel empty-state">

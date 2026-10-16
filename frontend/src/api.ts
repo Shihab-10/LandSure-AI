@@ -1,8 +1,9 @@
-export type ApiRole = "admin" | "reviewer" | "viewer";
+export type ApiRole = "admin" | "reviewer" | "viewer" | "demo";
 
 export type AuthUser = {
   username: string;
   role: ApiRole;
+  is_demo?: boolean;
 };
 
 export type ApiRequestOptions = RequestInit & {
@@ -10,7 +11,11 @@ export type ApiRequestOptions = RequestInit & {
 };
 
 export const DEFAULT_API_URL = "http://127.0.0.1:8000";
-export const API_URL = (import.meta.env.VITE_API_URL || DEFAULT_API_URL).replace(/\/$/, "");
+export const API_URL = (
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  DEFAULT_API_URL
+).replace(/\/$/, "");
 export const DEMO_MODE = String(import.meta.env.VITE_DEMO_MODE || "false").toLowerCase() === "true";
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
@@ -75,4 +80,18 @@ export async function loginUser(username: string, password: string) {
 
 export async function fetchCurrentUser(token: string): Promise<AuthUser> {
   return apiRequest<AuthUser>("/api/v1/auth/me", { token });
+}
+
+export async function loginDemoUser(): Promise<string> {
+  const data = await apiRequest<{ access_token?: string; token?: string }>("/api/v1/auth/demo", {
+    method: "POST",
+  });
+
+  const token = data.access_token ?? data.token;
+
+  if (!token) {
+    throw new Error("Demo login response did not include an access token.");
+  }
+
+  return token;
 }

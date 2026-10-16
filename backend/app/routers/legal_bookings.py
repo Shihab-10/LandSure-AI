@@ -78,6 +78,12 @@ def authenticated_identity(user):
             detail="Authentication required"
         )
 
+    if user.get("is_demo") or user.get("role") == "demo":
+        raise HTTPException(
+            status_code=403,
+            detail="Demo sessions cannot create or access legal bookings"
+        )
+
     username = user.get("username")
 
     if (
@@ -144,13 +150,14 @@ def create_booking(
     payload: CreateBookingRequest,
     user=Depends(current_user)
 ):
+    requester = authenticated_identity(user)
     booking = load_booking()
     try:
         return booking.create_booking(
             DATABASE_PATH,
             payload.lawyer_id,
             payload.availability_id,
-            authenticated_identity(user),
+            requester,
             consultation_mode=payload.consultation_mode,
             parcel_id=payload.parcel_id
         )
@@ -165,12 +172,13 @@ def get_booking(
     ],
     user=Depends(current_user)
 ):
+    requester = authenticated_identity(user)
     booking = load_booking()
     try:
         return booking.get_booking(
             DATABASE_PATH,
             request_id,
-            authenticated_identity(user)
+            requester
         )
     except booking.BookingError as error:
         handle_error(error, booking)
@@ -183,12 +191,13 @@ def cancel_booking(
     ],
     user=Depends(current_user)
 ):
+    requester = authenticated_identity(user)
     booking = load_booking()
     try:
         return booking.cancel_booking(
             DATABASE_PATH,
             request_id,
-            authenticated_identity(user)
+            requester
         )
     except booking.BookingError as error:
         handle_error(error, booking)

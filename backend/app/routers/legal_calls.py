@@ -17,7 +17,7 @@ if str(ROOT) not in sys.path:
 from services.legal_expert_connect_v1 import demo_call_service as service
 
 DATABASE_PATH = (
-    ROOT / "datasets/v2_3/landsure_synthetic_v2_3.db"
+    ROOT / "datasets/synthetic/landsure_synthetic_v2_3.db"
 )
 
 router = APIRouter(
@@ -36,6 +36,12 @@ def authenticated_identity(user):
         raise HTTPException(
             status_code=401,
             detail="Authentication required"
+        )
+
+    if user.get("is_demo") or user.get("role") == "demo":
+        raise HTTPException(
+            status_code=403,
+            detail="Demo sessions cannot start legal calls"
         )
 
     username = user.get("username")

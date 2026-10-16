@@ -27,13 +27,35 @@ app = FastAPI(
     description="Synthetic land intelligence demo API",
     lifespan=lifespan,
 )
+import os
+
+DEFAULT_CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+    "https://landsure-ai.pages.dev",
+]
+
+def get_cors_origins() -> list[str]:
+    custom = os.environ.get("LANDSURE_CORS_ORIGINS", "").strip()
+    if not custom:
+        return DEFAULT_CORS_ORIGINS
+    origins = [
+        item.strip()
+        for item in custom.split(",")
+        if item.strip() and item.strip() != "*"
+    ]
+    return origins if origins else DEFAULT_CORS_ORIGINS
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=get_cors_origins(),
     allow_credentials=False,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
 
 # LandSure AI V9 — Legal Expert Connect
 from app.routers.legal_experts import router as legal_experts_router
@@ -78,6 +100,7 @@ class AIQueryRequest(BaseModel):
     language: Literal["en", "bn", "banglish"] = "bn"
 
 @app.get("/health")
+@app.get("/api/v1/health")
 def health():
     return {
         "status": "ok",
@@ -264,7 +287,9 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.services.auth import (
     authenticate,
     create_token,
+    create_demo_token,
     decode_token,
+    get_secret,
 )
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -301,6 +326,14 @@ def require_roles(*allowed_roles):
 
 @app.post("/api/v1/auth/login")
 def login(payload: LoginRequest):
+    try:
+        get_secret()
+    except RuntimeError:
+        raise HTTPException(
+            status_code=503,
+            detail="Authentication service unavailable"
+        )
+
     user = authenticate(
         payload.username,
         payload.password
@@ -316,6 +349,26 @@ def login(payload: LoginRequest):
         "access_token": create_token(user),
         "token_type": "bearer",
         "expires_in": 1800,
+    }
+
+
+@app.post("/api/v1/auth/demo")
+def demo_login():
+    try:
+        token = create_demo_token()
+    except RuntimeError:
+        raise HTTPException(
+            status_code=503,
+            detail="Demo authentication service unavailable"
+        )
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "expires_in": 1800,
+        "role": "demo",
+        "username": "demo-visitor",
+        "is_demo": True,
     }
 
 
@@ -352,7 +405,10 @@ async def protect_api_routes(request: Request, call_next):
 
     public_paths = {
         "/api/v1/auth/login",
+        "/api/v1/auth/demo",
+        "/api/v1/health",
     }
+
 
     if (
         path.startswith("/api/v1/")
@@ -450,6 +506,12 @@ def api_change_password(
     payload: ChangePasswordRequest,
     user=Depends(current_user)
 ):
+    if user.get("is_demo") or user.get("role") == "demo":
+        raise HTTPException(
+            status_code=403,
+            detail="Demo sessions cannot change passwords"
+        )
+
     success = change_password(
         user["username"],
         payload.old_password,
@@ -509,7 +571,7 @@ WINDOW_SECONDS = 60
 @app.middleware("http")
 async def login_rate_limit(request: Request, call_next):
     if (
-        request.url.path == "/api/v1/auth/login"
+        request.url.path in {"/api/v1/auth/login", "/api/v1/auth/demo"}
         and request.method == "POST"
     ):
         client_ip = (
@@ -553,7 +615,7 @@ from app.services.trust_passport import generate_trust_passport
 def download_trust_passport(
     parcel_id: str,
     user=Depends(
-        require_roles("admin", "reviewer", "viewer")
+        require_roles("admin", "reviewer", "viewer", "demo")
     ),
 ):
     parcel = require_parcel(parcel_id)
@@ -587,7 +649,7 @@ from app.services.ai_assistant import (
 def ai_assistant(
     payload: AIQueryRequest,
     user=Depends(
-        require_roles("admin", "reviewer", "viewer")
+        require_roles("admin", "reviewer", "viewer", "demo")
     ),
 ):
     routing = classify_query(payload.question)
@@ -646,7 +708,7 @@ from app.services.intent_responses import (
 def ai_assistant_v2(
     payload: AIQueryRequest,
     user=Depends(
-        require_roles("admin", "reviewer", "viewer")
+        require_roles("admin", "reviewer", "viewer", "demo")
     ),
 ):
     routing = classify_query(payload.question)
@@ -713,7 +775,7 @@ from app.services.intent_routing_v2 import (
 def ai_assistant_v3(
     payload: AIQueryRequest,
     user=Depends(
-        require_roles("admin", "reviewer", "viewer")
+        require_roles("admin", "reviewer", "viewer", "demo")
     ),
 ):
     routing = classify_query_v2(payload.question)

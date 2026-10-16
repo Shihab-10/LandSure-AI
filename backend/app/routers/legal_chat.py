@@ -72,6 +72,12 @@ def authenticated_identity(user):
             detail="Authentication required"
         )
 
+    if user.get("is_demo") or user.get("role") == "demo":
+        raise HTTPException(
+            status_code=403,
+            detail="Demo sessions cannot access legal chat"
+        )
+
     username = user.get("username")
 
     if not isinstance(username, str) or not username.strip():
@@ -110,12 +116,13 @@ def create_conversation(
     payload: CreateConversationRequest,
     user=Depends(current_user)
 ):
+    sender = authenticated_identity(user)
     messaging = load_messaging()
     try:
         return messaging.create_conversation(
             DATABASE_PATH,
             payload.lawyer_id,
-            authenticated_identity(user)
+            sender
         )
     except messaging.MessagingError as error:
         handle_error(error, messaging)
@@ -128,12 +135,13 @@ def get_conversation(
     ],
     user=Depends(current_user)
 ):
+    requester = authenticated_identity(user)
     messaging = load_messaging()
     try:
         result = messaging.get_conversation(
             DATABASE_PATH,
             conversation_id,
-            authenticated_identity(user)
+            requester
         )
 
         result.pop("demo_user_reference", None)
@@ -157,12 +165,13 @@ def send_message(
     payload: SendMessageRequest,
     user=Depends(current_user)
 ):
+    sender = authenticated_identity(user)
     messaging = load_messaging()
     try:
         return messaging.send_message(
             DATABASE_PATH,
             conversation_id,
-            authenticated_identity(user),
+            sender,
             payload.message_text
         )
     except messaging.MessagingError as error:
@@ -179,12 +188,13 @@ def list_messages(
     limit: int = Query(default=50, ge=1, le=100),
     user=Depends(current_user)
 ):
+    requester = authenticated_identity(user)
     messaging = load_messaging()
     try:
         return messaging.list_messages(
             DATABASE_PATH,
             conversation_id,
-            authenticated_identity(user),
+            requester,
             limit=limit
         )
     except messaging.MessagingError as error:

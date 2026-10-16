@@ -63,6 +63,26 @@ def create_token(user):
     )
 
 
+DEMO_TOKEN_EXPIRE_MINUTES = 30
+
+
+def create_demo_token():
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": "demo-visitor",
+        "role": "demo",
+        "is_demo": True,
+        "token_version": 0,
+        "iat": now,
+        "exp": now + timedelta(minutes=DEMO_TOKEN_EXPIRE_MINUTES),
+    }
+    return jwt.encode(
+        payload,
+        get_secret(),
+        algorithm=ALGORITHM
+    )
+
+
 def decode_token(token):
     try:
         payload = jwt.decode(
@@ -73,12 +93,22 @@ def decode_token(token):
                 "require": [
                     "sub",
                     "role",
-                    "token_version",
                     "iat",
                     "exp",
                 ]
             }
         )
+
+        # Restricted demo session: stateless validation without permanent user record
+        if payload.get("is_demo") is True or payload.get("role") == "demo":
+            return {
+                "username": payload["sub"],
+                "role": "demo",
+                "is_demo": True,
+            }
+
+        if "token_version" not in payload:
+            raise ValueError("Token missing token_version")
 
         user = find_user(payload["sub"])
 
@@ -93,6 +123,7 @@ def decode_token(token):
         return {
             "username": user["username"],
             "role": user["role"],
+            "is_demo": False,
         }
 
     except (jwt.PyJWTError, ValueError, KeyError):
