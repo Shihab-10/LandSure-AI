@@ -1,0 +1,197 @@
+{
+  "step": "15D",
+  "created_utc": "20261016_111755_153370",
+  "description": "Isolated LandSure AI VS Code backend/model/data export",
+  "original_sources_modified": false,
+  "contains_private_auth_database": false,
+  "contains_jwt_secret": false,
+  "model_retrained": false,
+  "frontend_included": false,
+  "production_ready": false,
+  "notes": [
+    "Synthetic dataset only.",
+    "Original trained models reused.",
+    "JWT token_version schema migration remains to be fixed.",
+    "Backend runtime paths and dependencies require local setup.",
+    "Pretrained MiniLM weights are not bundled.",
+    "Voice assistant is not implemented.",
+    "All 26 application features are not complete."
+  ],
+  "files": [
+    {
+      "destination": "backend/app/__init__.py",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "destination": "backend/app/api/__init__.py",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "destination": "backend/app/core/__init__.py",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "destination": "backend/app/data/advisor.json",
+      "size_bytes": 1705642,
+      "sha256": "f93916754e7ece600fa3baece3b8501a53cf3f05a21e216199adae1833d9550c"
+    },
+    {
+      "destination": "backend/app/data/verification.json",
+      "size_bytes": 491402,
+      "sha256": "1a9e22bbe366a44f38fd7425cba1d59b3c0000f961c71505ac7db11904b0ff22"
+    },
+    {
+      "destination": "backend/app/dependencies.py",
+      "size_bytes": 513,
+      "sha256": "289f0be5a07f012c8a554c714fb25e08356cb60f2e68f6fff566298ffea6ce21"
+    },
+    {
+      "destination": "backend/app/main.py",
+      "size_bytes": 19353,
+      "sha256": "b07bd90bd4dcc8e4a284c20bcc4846d2503c452b86fad3da67025ead50f7080f"
+    },
+    {
+      "destination": "backend/app/routers/__init__.py",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "destination": "backend/app/routers/legal_bookings.py",
+      "size_bytes": 3987,
+      "sha256": "5a795c989b544d3d3b58e7223c79589baa37fe171b40f10efcd7e0bb9b4c6eb0"
+    },
+    {
+      "destination": "backend/app/routers/legal_calls.py",
+      "size_bytes": 2869,
+      "sha256": "00de61a010073cdf03ae81626a772c465ca3aa1fa79a3792c99a41e321bfc3c1"
+    },
+    {
+      "destination": "backend/app/routers/legal_chat.py",
+      "size_bytes": 4024,
+      "sha256": "c969d58f942a546612988a403be3406fd21e60a9a2389d5a427f2dd4188000c6"
+    },
+    {
+      "destination": "backend/app/routers/legal_experts.py",
+      "size_bytes": 4256,
+      "sha256": "a82d2bdd27dd8257985ee735d8150f42dfb607de27b9f24434eb02706ecd112a"
+    },
+    {
+      "destination": "backend/app/services/__init__.py",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "destination": "backend/app/services/ai_assistant.py",
+      "size_bytes": 4942,
+      "sha256": "e70433dd875eb3b5ed7c03aecc8081b430f8b5a2f5adfde87f69d46cd2b724d1"
+    },
+    {
+      "destination": "backend/app/services/ai_model_integration_v4.py",
+      "size_bytes": 1442,
+      "sha256": "688449f5b9337a5c66042368b109f8066d853f7e2565056541ebeae9a6efafe5"
+    },
+    {
+      "destination": "backend/app/services/auth.py",
+      "size_bytes": 2289,
+      "sha256": "786a10cca9e02f99e4c68206830c8f3eb5aa74c75d423d9c2befa6248dbbfd53"
+    },
+    {
+      "destination": "backend/app/services/bangla_router.py",
+      "size_bytes": 1213,
+      "sha256": "fa51a701d87e417f01c77e11902f3a1b37d3f5cadc120c5afa4ce258e98f8447"
+    },
+    {
+      "destination": "backend/app/services/copilot_evidence_v1.py",
+      "size_bytes": 8018,
+      "sha256": "d19e7b09aff73244c51323814e2f6c2296e567bfd3aed686f4efd1bfea80d759"
+    },
+    {
+      "destination": "backend/app/services/database.py",
+      "size_bytes": 1042,
+      "sha256": "808bc9e0ba5ee3ff4030104cf2b9d0b22d1f8a5cc314a79f219217efb5012980"
+    },
+    {
+      "destination": "backend/app/services/evidence.py",
+      "size_bytes": 859,
+      "sha256": "cb53f80d4bab941a86b2a7cd9927d6e555deda2bbcd8f579c304a2056e8b9c83"
+    },
+    {
+      "destination": "backend/app/services/intent.py",
+      "size_bytes": 1850,
+      "sha256": "d24b3de9d292c1aa63f4552e12af9cf675ed78f5e62a9294b17fe4735287374b"
+    },
+    {
+      "destination": "backend/app/services/intent_responses.py",
+      "size_bytes": 2228,
+      "sha256": "57e1d87fe61370700ec4b647c015419af9a67264df00b89402b250c63d31cef0"
+    },
+    {
+      "destination": "backend/app/services/intent_routing_v2.py",
+      "size_bytes": 1042,
+      "sha256": "18b0a8b4cbccc5699223d145ec8b649dbf0de4cfda907fc6c1551079503ae081"
+    },
+    {
+      "destination": "backend/app/services/land_intelligence.py",
+      "size_bytes": 3293,
+      "sha256": "7496e1857549ba5107d3a1337e6b449e12c869bfb3510849cf35fba180e93da3"
+    },
+    {
+      "destination": "backend/app/services/trust_passport.py",
+      "size_bytes": 8651,
+      "sha256": "e655f46adaec17d4f12ac2e01b80728fee08cd903646ef96e9a3ea39523fcdc0"
+    },
+    {
+      "destination": "backend/app/services/user_store.py",
+      "size_bytes": 3369,
+      "sha256": "a9728162c0755ae1fbde21a771aa83c3d912146de69031b0fd40220ff277656b"
+    },
+    {
+      "destination": "backend/requirements.txt",
+      "size_bytes": 202,
+      "sha256": "b7db483adbb1547956a5864c839437398ac9db94765601b623440c9e8d8a7907"
+    },
+    {
+      "destination": "models/parcel_review/logistic_regression_v2.joblib",
+      "size_bytes": 2905,
+      "sha256": "b004df98835b4dada5ea80709286fb690dcc12e2576df940695acb8e563b4d66"
+    },
+    {
+      "destination": "models/query_router/landsure_feature_router_v4.joblib",
+      "size_bytes": 4478472,
+      "sha256": "91cdc4c35e29138c83207c2ca0d786a7a2515c35b07350875cc08836c86571cc"
+    },
+    {
+      "destination": "models/safety_gate/landsure_safety_gate_v2.joblib",
+      "size_bytes": 687984,
+      "sha256": "8a73c242ce377ceebfe96a544d2d888c0b31c575cc71e6fbf1646e1bb3682cdd"
+    },
+    {
+      "destination": "datasets/synthetic/landsure_synthetic_v2_3.db",
+      "size_bytes": 2600960,
+      "sha256": "12187ba1da29dab80f20f2e0b3d795abadd7715b158c638b1546414168197364"
+    },
+    {
+      "destination": "models/parcel_review/landsure_parcel_feature_extractor.py",
+      "size_bytes": 4277,
+      "sha256": "8ba133e79f738e732b284cae0e3d774155c08f486fa70c9a57ca2df5994641de"
+    },
+    {
+      "destination": "models/retrieval/LAND_TERMINOLOGY.json",
+      "size_bytes": 3418,
+      "sha256": "9ea33e4d14e1f9f2fbe496c1a0c5e758dc0762b65075dd720a4c5a38a6a45fab"
+    },
+    {
+      "destination": "docs/FEATURE_EXTRACTION_CONTRACT.json",
+      "size_bytes": 3560,
+      "sha256": "b46abd02629d9a170600cdfb0c1c9f8666bce6d0034dbe6d0eb03e719972447d"
+    },
+    {
+      "destination": "docs/FEATURE_MODEL_MAPPING.json",
+      "size_bytes": 11381,
+      "sha256": "3b3a381be4cbe4dc25d1e565c5ae5f9b5a5ffa06dcabadb2f074e91d86ad2dca"
+    }
+  ]
+}

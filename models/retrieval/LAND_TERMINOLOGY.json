@@ -1,0 +1,102 @@
+[
+  {
+    "id": "mutation",
+    "text": "নামজারি বা mutation হলো জমির মালিকানা পরিবর্তনের তথ্য ভূমি রেকর্ডে হালনাগাদ করার প্রক্রিয়া।",
+    "aliases": [
+      "নামজারি",
+      "মিউটেশন",
+      "mutation",
+      "namjari",
+      "namjari status",
+      "mutation status"
+    ]
+  },
+  {
+    "id": "khatian",
+    "text": "খতিয়ানে জমির রেকর্ড, দাগ নম্বর, মালিকানা-সংক্রান্ত তথ্য ও জমির পরিমাণ থাকে।",
+    "aliases": [
+      "খতিয়ান",
+      "খতিয়ান",
+      "khatian",
+      "khatiyan",
+      "record of rights",
+      "খতিয়ান নম্বর"
+    ]
+  },
+  {
+    "id": "dag",
+    "text": "দাগ নম্বর হলো মৌজা মানচিত্রে জমির নির্দিষ্ট অংশ শনাক্ত করার নম্বর।",
+    "aliases": [
+      "দাগ",
+      "দাগ নম্বর",
+      "dag",
+      "dag number",
+      "plot number",
+      "jomi chinbo"
+    ]
+  },
+  {
+    "id": "document",
+    "text": "জমির দলিল যাচাইয়ের সময় দলিলের তথ্য এবং সংশ্লিষ্ট রেকর্ডের মিল পরীক্ষা করা হয়।",
+    "aliases": [
+      "দলিল",
+      "দলিল যাচাই",
+      "deed",
+      "document verification",
+      "dolil"
+    ]
+  },
+  {
+    "id": "ownership",
+    "text": "মালিকানা ধারাবাহিকতা যাচাইয়ে পূর্ববর্তী ও বর্তমান মালিকানা দাবির সম্পর্ক পরীক্ষা করা হয়।",
+    "aliases": [
+      "মালিক",
+      "মালিকানা",
+      "ownership",
+      "ownership history",
+      "previous owner",
+      "malik",
+      "malik ke chilo",
+      "jomi malik"
+    ]
+  },
+  {
+    "id": "tax",
+    "text": "ভূমি উন্নয়ন করের তথ্য জমির যাচাই প্রক্রিয়ার একটি গুরুত্বপূর্ণ অংশ।",
+    "aliases": [
+      "ভূমি উন্নয়ন কর",
+      "ভূমি কর",
+      "land tax",
+      "land development tax",
+      "bhumi unnoyon kor",
+      "khajna",
+      "খাজনা"
+    ]
+  },
+  {
+    "id": "survey",
+    "text": "CS, SA, RS ও BS/BDS জরিপের রেকর্ড তুলনা করে জমির তথ্যের পরিবর্তন বোঝা যায়।",
+    "aliases": [
+      "জরিপ",
+      "survey",
+      "CS SA RS",
+      "CS",
+      "SA",
+      "RS",
+      "BS BDS"
+    ]
+  },
+  {
+    "id": "map",
+    "text": "জমির মানচিত্র, সীমানা ও পরিমাণের তথ্য মিলিয়ে ভৌগোলিক অসঙ্গতি খোঁজা যায়।",
+    "aliases": [
+      "মানচিত্র",
+      "সীমানা",
+      "land map",
+      "land boundaries",
+      "boundary verification",
+      "mouza map",
+      "মৌজা ম্যাপ"
+    ]
+  }
+]

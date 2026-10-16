@@ -1,0 +1,337 @@
+{
+  "step": "7G",
+  "source_baseline": "ai_handoff/feature_training_baseline_run_20261015_184734_868481/FEATURE_TRAINING_BASELINE.json",
+  "models_found": {
+    "intent_v3": true,
+    "parcel_review_v2": true
+  },
+  "services_found": {
+    "feature_extractor": true,
+    "parcel_rules": true,
+    "hybrid_assessment": true,
+    "assistant": true,
+    "intent_router": true,
+    "intent_responses": true,
+    "legal_chat": true
+  },
+  "mapping": [
+    {
+      "id": 1,
+      "name": "Unified Digital Parcel Identity",
+      "required_capability": "Structured database and identity rules",
+      "ml_requirement": false,
+      "existing_candidate_components": [],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 2,
+      "name": "Cross-Survey Khatian & Land History Intelligence",
+      "required_capability": "Survey record matching and evidence rules",
+      "ml_requirement": "OPTIONAL",
+      "existing_candidate_components": [],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 3,
+      "name": "Survey Time Machine & Ownership Timeline",
+      "required_capability": "Historical timeline and ownership graph",
+      "ml_requirement": "OPTIONAL",
+      "existing_candidate_components": [],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 4,
+      "name": "GIS Map, Dag, Area & Boundary Verification",
+      "required_capability": "Geospatial comparison and boundary analysis",
+      "ml_requirement": "OPTIONAL",
+      "existing_candidate_components": [],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 5,
+      "name": "Smart Land Verification Engine",
+      "required_capability": "Existing rules and parcel review ML",
+      "ml_requirement": "EXISTING",
+      "existing_candidate_components": [
+        "parcel_review_v2",
+        "parcel_rules",
+        "hybrid_assessment"
+      ],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 6,
+      "name": "Ownership Chain, Deed & Double-Selling Risk Detection",
+      "required_capability": "Ownership graph and anomaly detection",
+      "ml_requirement": "OPTIONAL",
+      "existing_candidate_components": [
+        "parcel_review_v2",
+        "parcel_rules",
+        "hybrid_assessment"
+      ],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 7,
+      "name": "Namjari / Mutation Verification",
+      "required_capability": "Mutation comparison and evidence rules",
+      "ml_requirement": false,
+      "existing_candidate_components": [
+        "parcel_review_v2",
+        "parcel_rules",
+        "hybrid_assessment"
+      ],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 8,
+      "name": "Document Integrity Verification",
+      "required_capability": "SHA-256 document integrity checks",
+      "ml_requirement": false,
+      "existing_candidate_components": [],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 9,
+      "name": "Land Development Tax Verification",
+      "required_capability": "Tax evidence verification rules",
+      "ml_requirement": false,
+      "existing_candidate_components": [],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 10,
+      "name": "Inheritance & Co-Owner Consent Verification",
+      "required_capability": "Inheritance and consent evidence graph",
+      "ml_requirement": "OPTIONAL",
+      "existing_candidate_components": [],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 11,
+      "name": "Legal Case & Court-Order Verification Checklist",
+      "required_capability": "Legal document retrieval and review workflow",
+      "ml_requirement": "OPTIONAL",
+      "existing_candidate_components": [],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 12,
+      "name": "Road Access & Possession Risk Assessment",
+      "required_capability": "GIS and possession evidence rules",
+      "ml_requirement": "OPTIONAL",
+      "existing_candidate_components": [],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 13,
+      "name": "Evidence-Linked Land Trust Passport",
+      "required_capability": "Evidence-linked PDF generation",
+      "ml_requirement": false,
+      "existing_candidate_components": [],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 14,
+      "name": "Parcel Change Watch",
+      "required_capability": "Authorized record snapshot comparison",
+      "ml_requirement": false,
+      "existing_candidate_components": [],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 15,
+      "name": "What Changed, Why? Intelligence",
+      "required_capability": "Evidence-linked change explanation",
+      "ml_requirement": "OPTIONAL",
+      "existing_candidate_components": [],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 16,
+      "name": "Verification Gap Navigator",
+      "required_capability": "Missing evidence and gap prioritization",
+      "ml_requirement": false,
+      "existing_candidate_components": [
+        "parcel_review_v2",
+        "parcel_rules",
+        "hybrid_assessment"
+      ],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 17,
+      "name": "Bangla Land Document AI (OCR)",
+      "required_capability": "Pretrained Bangla/English OCR and extraction",
+      "ml_requirement": "REQUIRED",
+      "existing_candidate_components": [],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 18,
+      "name": "LandSure AI Copilot",
+      "required_capability": "Pretrained multilingual LLM, RAG and tools",
+      "ml_requirement": "REQUIRED",
+      "existing_candidate_components": [
+        "intent_v3",
+        "assistant",
+        "intent_router",
+        "intent_responses"
+      ],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 19,
+      "name": "AI Query Classification & Intelligent Retrieval",
+      "required_capability": "Expanded intent classification and retrieval",
+      "ml_requirement": "EXISTING_PLUS",
+      "existing_candidate_components": [
+        "intent_v3",
+        "assistant",
+        "intent_router",
+        "intent_responses"
+      ],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 20,
+      "name": "Pre-Purchase Verification Wizard",
+      "required_capability": "Workflow engine and verification checklist",
+      "ml_requirement": false,
+      "existing_candidate_components": [],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 21,
+      "name": "Interactive Land Map & Parcel Explorer",
+      "required_capability": "Interactive GIS parcel explorer",
+      "ml_requirement": false,
+      "existing_candidate_components": [],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 22,
+      "name": "Personalized Buyer Dashboard",
+      "required_capability": "Authenticated dashboard and progress APIs",
+      "ml_requirement": false,
+      "existing_candidate_components": [],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 23,
+      "name": "Estimated Land Registration Cost Calculator",
+      "required_capability": "Versioned registration rates and formulas",
+      "ml_requirement": false,
+      "existing_candidate_components": [],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 24,
+      "name": "Legal Expert Connect",
+      "required_capability": "Verified lawyer directory and booking APIs",
+      "ml_requirement": false,
+      "existing_candidate_components": [
+        "legal_chat"
+      ],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 25,
+      "name": "Secure Access, Privacy & Audit Trail",
+      "required_capability": "Authentication, authorization and audit logging",
+      "ml_requirement": false,
+      "existing_candidate_components": [],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    },
+    {
+      "id": 26,
+      "name": "Admin Record Management & Scenario Simulator",
+      "required_capability": "Admin management and synthetic scenario engine",
+      "ml_requirement": false,
+      "existing_candidate_components": [],
+      "end_to_end_verified": false,
+      "assistant_answer_verified": false,
+      "training_gap_confirmed": false,
+      "status": "REQUIRES_FEATURE_LEVEL_TEST"
+    }
+  ],
+  "coverage_verified": false,
+  "training_complete": false,
+  "production_approved": false,
+  "original_files_modified": false
+}

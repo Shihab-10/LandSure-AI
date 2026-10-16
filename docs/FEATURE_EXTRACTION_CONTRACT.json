@@ -1,0 +1,143 @@
+{
+  "project": "LandSure AI",
+  "step": "4M",
+  "contract_version": "1.0",
+  "created_at_utc": "2026-10-15T11:29:16.107836+00:00",
+  "database_path": "datasets/v2_3/landsure_synthetic_v2_3.db",
+  "database_sha256": "12187ba1da29dab80f20f2e0b3d795abadd7715b158c638b1546414168197364",
+  "feature_count": 17,
+  "feature_order": [
+    "reference_area_decimal",
+    "survey_record_count",
+    "survey_missing_count",
+    "survey_area_min",
+    "survey_area_max",
+    "survey_area_max_diff",
+    "mutation_count",
+    "mutation_issue_count",
+    "document_count",
+    "document_mismatch_count",
+    "transaction_count",
+    "competing_claim_count",
+    "ownership_claim_count",
+    "owner_count",
+    "mapping_provisional_count",
+    "mapping_unresolved_count",
+    "mapping_curated_count"
+  ],
+  "target_column": "target_review_required",
+  "source_tables": {
+    "parcels": [
+      "parcel_id",
+      "district_code",
+      "upazila_code",
+      "mouza_code",
+      "reference_area_decimal",
+      "record_status",
+      "is_synthetic"
+    ],
+    "survey_records": [
+      "survey_record_id",
+      "parcel_id",
+      "survey_type",
+      "district_code",
+      "upazila_code",
+      "mouza_code",
+      "dag_no",
+      "khatian_no",
+      "area_decimal",
+      "scenario_type",
+      "is_synthetic",
+      "recorded_owner_id",
+      "record_presence"
+    ],
+    "survey_correspondences": [
+      "mapping_id",
+      "parcel_id",
+      "from_survey_record_id",
+      "to_survey_record_id",
+      "mapping_status",
+      "evidence_id",
+      "is_synthetic"
+    ],
+    "mutations": [
+      "mutation_id",
+      "parcel_id",
+      "owner_id",
+      "mutation_date",
+      "mutation_status",
+      "related_transaction_id",
+      "is_synthetic",
+      "review_reason",
+      "recommended_action"
+    ],
+    "documents": [
+      "document_id",
+      "parcel_id",
+      "document_type",
+      "reference_hash",
+      "submitted_hash",
+      "integrity_status",
+      "is_synthetic"
+    ],
+    "transactions": [
+      "transaction_id",
+      "parcel_id",
+      "seller_owner_id",
+      "buyer_owner_id",
+      "transaction_date",
+      "transaction_type",
+      "transaction_status",
+      "source_document_id",
+      "is_synthetic"
+    ],
+    "ownership_claims": [
+      "claim_id",
+      "parcel_id",
+      "owner_id",
+      "claim_type",
+      "claim_status",
+      "source_document_id",
+      "is_synthetic"
+    ],
+    "owners": [
+      "owner_id",
+      "display_name",
+      "identity_type",
+      "is_synthetic"
+    ]
+  },
+  "verified_features": {
+    "mapping_provisional_count": true,
+    "mapping_unresolved_count": true,
+    "mapping_curated_count": true
+  },
+  "remaining_features": [
+    "reference_area_decimal",
+    "survey_record_count",
+    "survey_missing_count",
+    "survey_area_min",
+    "survey_area_max",
+    "survey_area_max_diff",
+    "mutation_count",
+    "mutation_issue_count",
+    "document_count",
+    "document_mismatch_count",
+    "transaction_count",
+    "competing_claim_count",
+    "ownership_claim_count",
+    "owner_count"
+  ],
+  "integration_requirements": [
+    "Use parcel_id as input",
+    "Open database read-only for inference",
+    "Preserve exact feature order",
+    "Use same aggregation logic as training",
+    "Reject unknown parcel IDs",
+    "Do not use labels or scenario_type as inputs",
+    "Do not mutate source records",
+    "Enforce JWT authorization at API layer",
+    "Do not treat ML score as legal proof"
+  ],
+  "status": "PARTIAL: mapping features verified; remaining 14 features require exact parity testing"
+}
