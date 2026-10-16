@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: landsure-ai-backend-production
+    runtime: python
+    plan: starter
+    region: singapore
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: python -m uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: LANDSURE_CORS_ORIGINS
+        value: https://landsure-ai.pages.dev,http://localhost:5173,http://localhost:3000
+      - key: LANDSURE_JWT_SECRET
+        generateValue: true
+      - key: LANDSURE_AUTH_DB
+        value: /var/data/landsure_auth.db
+      - key: LANDSURE_DEMO_ONLY_MODE
+        value: "false"
+    disk:
+      name: landsure-auth-storage
+      mountPath: /var/data
+      sizeGB: 1

@@ -1,4 +1,5 @@
 import importlib.util
+import os
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -151,6 +152,11 @@ def create_booking(
     user=Depends(current_user)
 ):
     requester = authenticated_identity(user)
+    if os.environ.get("LANDSURE_DEMO_ONLY_MODE", "false").strip().lower() in ("true", "1", "yes"):
+        raise HTTPException(
+            status_code=403,
+            detail="Permanent bookings require persistent storage and are disabled in demo mode"
+        )
     booking = load_booking()
     try:
         return booking.create_booking(

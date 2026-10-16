@@ -2,9 +2,7 @@ services:
   - type: web
     name: landsure-ai-backend
     runtime: python
-    # For Free Tier evaluation, set plan: free and comment out the disk section below.
-    # For Persistent Storage on Render, plan: starter (or higher) is required for attached disks.
-    plan: starter
+    plan: free
     region: singapore
     buildCommand: pip install -r backend/requirements.txt
     startCommand: python -m uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port $PORT
@@ -16,11 +14,5 @@ services:
         value: https://landsure-ai.pages.dev,http://localhost:5173,http://localhost:3000
       - key: LANDSURE_JWT_SECRET
         generateValue: true
-      - key: LANDSURE_AUTH_DB
-        value: /var/data/landsure_auth.db
-    # Persistent disk: requires Render Starter plan ($7/mo).
-    # If using Render Free tier, comment out the disk block below and note that SQLite auth will be ephemeral.
-    disk:
-      name: landsure-auth-storage
-      mountPath: /var/data
-      sizeGB: 1
+      - key: LANDSURE_DEMO_ONLY_MODE
+        value: "true"

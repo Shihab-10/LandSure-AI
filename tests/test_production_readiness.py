@@ -274,3 +274,37 @@ def test_auth_unavailable_without_secret(test_client, monkeypatch):
     )
     assert resp_login.status_code == 503
     assert "unavailable" in resp_login.json()["detail"].lower()
+
+
+def test_demo_only_mode_blocks_permanent_modifications(test_client, monkeypatch):
+    monkeypatch.setenv("LANDSURE_DEMO_ONLY_MODE", "true")
+
+    # Health endpoint reports demo mode
+    resp_health = test_client.get("/health")
+    assert resp_health.status_code == 200
+    assert resp_health.json()["demo_mode"] is True
+    assert resp_health.json()["persistent_storage"] is False
+
+    # Demo login still works seamlessly
+    demo_resp = test_client.post("/api/v1/auth/demo")
+    assert demo_resp.status_code == 200
+    demo_token = demo_resp.json()["access_token"]
+    demo_headers = {"Authorization": f"Bearer {demo_token}"}
+
+    # Reading synthetic parcel data is permitted
+    resp_parcel = test_client.get("/api/v1/parcels/LS-PARCEL-000001", headers=demo_headers)
+    assert resp_parcel.status_code == 200
+    assert resp_parcel.json()["synthetic"] is True
+
+    # User registration is rejected in demo-only deployment
+    user_store.create_user("temp-admin", token_urlsafe(24), "admin")
+    admin_token = auth_module.create_token({"username": "temp-admin", "role": "admin", "token_version": 0})
+    admin_headers = {"Authorization": f"Bearer {admin_token}"}
+
+    resp_create = test_client.post(
+        "/api/v1/admin/users",
+        headers=admin_headers,
+        json={"username": "new-user", "password": "securepassword123!", "role": "viewer"},
+    )
+    assert resp_create.status_code == 403
+    assert "disabled in demo-only" in resp_create.json()["detail"].lower()

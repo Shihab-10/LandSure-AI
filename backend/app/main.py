@@ -99,13 +99,19 @@ class AIQueryRequest(BaseModel):
     question: str = Field(min_length=1, max_length=1000)
     language: Literal["en", "bn", "banglish"] = "bn"
 
+def is_demo_only_mode() -> bool:
+    return os.environ.get("LANDSURE_DEMO_ONLY_MODE", "false").strip().lower() in ("true", "1", "yes")
+
 @app.get("/health")
 @app.get("/api/v1/health")
 def health():
+    demo_mode = is_demo_only_mode()
     return {
         "status": "ok",
         "project": "LandSure AI",
         "synthetic": True,
+        "demo_mode": demo_mode,
+        "persistent_storage": not demo_mode,
     }
 
 @app.get("/api/v1/parcels/{parcel_id}")
@@ -482,6 +488,12 @@ def api_create_user(
     payload: CreateUserRequest,
     user=Depends(require_roles("admin"))
 ):
+    if is_demo_only_mode():
+        raise HTTPException(
+            status_code=403,
+            detail="Persistent user creation is disabled in demo-only deployment"
+        )
+
     try:
         create_user(
             payload.username,
@@ -512,6 +524,12 @@ def api_change_password(
             detail="Demo sessions cannot change passwords"
         )
 
+    if is_demo_only_mode():
+        raise HTTPException(
+            status_code=403,
+            detail="Password modifications are disabled in demo-only deployment"
+        )
+
     success = change_password(
         user["username"],
         payload.old_password,
@@ -535,6 +553,11 @@ def api_deactivate_user(
     username: str,
     user=Depends(require_roles("admin"))
 ):
+    if is_demo_only_mode():
+        raise HTTPException(
+            status_code=403,
+            detail="Account deactivation is disabled in demo-only deployment"
+        )
     if username == user["username"]:
         raise HTTPException(
             status_code=400,
