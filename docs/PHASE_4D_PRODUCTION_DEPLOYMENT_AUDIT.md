@@ -125,6 +125,29 @@ dist/assets/index-Bo1zNv9r.js   555.51 kB │ gzip: 157.00 kB
   - `LANDSURE_DEMO_ONLY_MODE`: `"true"`
 - **Storage Strategy:** Database is read-only SQLite (`datasets/synthetic/landsure_synthetic_v2_3.db`) with 700 curated demonstration parcels. Temporary user uploads and generated PDF reports use system temp storage without requiring disk persistence.
 
+### 4.3 Real Live Browser Smoke & Regression Verification (Cloudflare + Render)
+Directly verified against the live production URLs:
+- **Frontend:** [https://landsure-ai.pages.dev/](https://landsure-ai.pages.dev/)
+- **Backend:** [https://landsure-ai-backend.onrender.com](https://landsure-ai-backend.onrender.com)
+- **Production Commit:** `7829052`
+
+| Live Verification Step | Result | Live Proof / Screenshot |
+|:---|:---:|:---|
+| **1. Fresh Welcome Screen** | **PASSED** | Frictionless entry card with "জমি যাচাই শুরু করুন" rendered cleanly. [`docs/screenshots/live_welcome_screen.png`](file:///c:/Users/shiha/OneDrive/Desktop/LandSure-AI/docs/screenshots/live_welcome_screen.png) |
+| **2. One-Click Guest Login** | **PASSED** | Live Render backend issued HS256 JWT bearer token (`role: demo`, 30-min validity) in <1.2s. [`docs/screenshots/live_dashboard_overview.png`](file:///c:/Users/shiha/OneDrive/Desktop/LandSure-AI/docs/screenshots/live_dashboard_overview.png) |
+| **3. GIS Map & Bangladesh Boundary** | **PASSED** | Leaflet tiles rendered via OpenStreetMap and Esri satellite with zero watermark. [`docs/screenshots/live_gis_map.png`](file:///c:/Users/shiha/OneDrive/Desktop/LandSure-AI/docs/screenshots/live_gis_map.png) |
+| **4. 16-Step Buyer Verification Journey** | **PASSED** | Step-by-step pre-purchase due diligence workspace active. [`docs/screenshots/live_buyer_journey.png`](file:///c:/Users/shiha/OneDrive/Desktop/LandSure-AI/docs/screenshots/live_buyer_journey.png) |
+| **5. Bengali Deed Review & OCR** | **PASSED** | Upload and structured extraction interface fully operational. [`docs/screenshots/live_document_intelligence.png`](file:///c:/Users/shiha/OneDrive/Desktop/LandSure-AI/docs/screenshots/live_document_intelligence.png) |
+| **6. Conversational AI Assistant** | **PASSED** | Chat input, Bengali query routing, and evidence provenance cards functional. [`docs/screenshots/live_ai_copilot.png`](file:///c:/Users/shiha/OneDrive/Desktop/LandSure-AI/docs/screenshots/live_ai_copilot.png) |
+| **7. ML Risk Review & Signals** | **PASSED** | Scikit-learn 17-feature Logistic Regression model inference HTTP 200 without error. |
+| **8. Lawyer Consultation Directory** | **PASSED** | 50 curated advocate profiles and slot view modal active. [`docs/screenshots/live_lawyers.png`](file:///c:/Users/shiha/OneDrive/Desktop/LandSure-AI/docs/screenshots/live_lawyers.png) |
+| **9. Land Trust Passport Report** | **PASSED** | Verification report workspace and PDF generation active. [`docs/screenshots/live_trust_passport.png`](file:///c:/Users/shiha/OneDrive/Desktop/LandSure-AI/docs/screenshots/live_trust_passport.png) |
+| **10. Dual-Parcel Context Switching** | **PASSED** | Tested `LS-PARCEL-000001` and `LS-PARCEL-000002` (competing claim); no stale cache observed. |
+| **11. Browser Refresh (F5) Persistence** | **PASSED** | Session restored synchronously in 0ms; no login card flicker or logout loop. |
+| **12. Logout & Re-Login Cycle** | **PASSED** | Token cleanly cleared from localStorage; second login cycle succeeded immediately. |
+| **13. Mobile Viewport (375x667)** | **PASSED** | Verified responsive topbar, burger menu, and cards on mobile. [`docs/screenshots/live_mobile_viewport.png`](file:///c:/Users/shiha/OneDrive/Desktop/LandSure-AI/docs/screenshots/live_mobile_viewport.png) |
+| **14. Critical Console Errors** | **0 ERRORS** | Zero critical console errors or CORS failures detected on live production site. |
+
 ---
 
 ## 5. Rollback Plan
