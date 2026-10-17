@@ -46,7 +46,40 @@ def get_parcel(parcel_id):
             (parcel_id,)
         ).fetchone()
 
-    return dict(row) if row else None
+    if not row:
+        return None
+
+    data = dict(row)
+    dist_code = data.get("district_code", "DEMO-D01")
+    ref_area = float(data.get("reference_area_decimal", 10.0))
+
+    if dist_code == "DEMO-D02":
+        data["district_name_bn"] = "চট্টগ্রাম"
+        data["district_name_en"] = "Chattogram"
+        data["upazila_name_bn"] = "হাটহাজারী"
+        data["upazila_name_en"] = "Hathazari"
+        data["mouza_name_bn"] = "ফতেহপুর"
+        data["mouza_name_en"] = "Fatehpur"
+    elif dist_code == "DEMO-D03":
+        data["district_name_bn"] = "সিলেট"
+        data["district_name_en"] = "Sylhet"
+        data["upazila_name_bn"] = "সিলেট সদর"
+        data["upazila_name_en"] = "Sylhet Sadar"
+        data["mouza_name_bn"] = "টুকেরবাজার"
+        data["mouza_name_en"] = "Tukerbazar"
+    else:
+        data["district_name_bn"] = "ঢাকা"
+        data["district_name_en"] = "Dhaka"
+        data["upazila_name_bn"] = "সাভার"
+        data["upazila_name_en"] = "Savar"
+        data["mouza_name_bn"] = "বিরুলিয়া"
+        data["mouza_name_en"] = "Birulia"
+
+    data["display_name_bn"] = f"{data['mouza_name_bn']} {'আবাসিক' if ref_area <= 30 else 'নাল'} জমি"
+    data["display_name_en"] = f"{data['mouza_name_en']} {'Residential' if ref_area <= 30 else 'Agricultural'} Land"
+    data["land_classification_bn"] = "ভিটি / বাড়ি (আবাসিক)" if ref_area <= 30 else "নাল জমি (কৃষি)"
+
+    return data
 
 def get_related(table, parcel_id):
     if table not in ALLOWED_TABLES:

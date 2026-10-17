@@ -99,7 +99,7 @@ def classify_query(question):
         feature_id = v4_result.get("router_candidate_feature_id")
         gate_label = v4_result.get("gate_label")
 
-        intent = FEATURE_TO_INTENT.get(feature_id, "LAND_KNOWLEDGE")
+        intent = FEATURE_TO_INTENT.get(int(feature_id), "LAND_KNOWLEDGE") if feature_id is not None else "LAND_KNOWLEDGE"
 
         result = {
             "intent": intent,

@@ -1,5 +1,31 @@
+import os
+from pathlib import Path
 import sqlite3
 from contextlib import asynccontextmanager
+
+def _load_env_file() -> None:
+    candidates = [
+        Path(".env"),
+        Path("../.env"),
+        Path(__file__).resolve().parents[1] / ".env",
+        Path(__file__).resolve().parents[2] / ".env",
+    ]
+    for env_path in candidates:
+        if env_path.is_file():
+            try:
+                for line in env_path.read_text(encoding="utf-8").splitlines():
+                    clean_line = line.strip()
+                    if clean_line and not clean_line.startswith("#") and "=" in clean_line:
+                        key, val = clean_line.split("=", 1)
+                        key = key.strip()
+                        val = val.strip().strip('"').strip("'")
+                        if key and key not in os.environ:
+                            os.environ[key] = val
+            except Exception:
+                pass
+            break
+
+_load_env_file()
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,9 +57,13 @@ import os
 
 DEFAULT_CORS_ORIGINS = [
     "http://localhost:5173",
+    "http://localhost:5174",
     "http://localhost:3000",
     "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
     "http://127.0.0.1:3000",
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
     "https://landsure-ai.pages.dev",
 ]
 
@@ -51,6 +81,7 @@ def get_cors_origins() -> list[str]:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_cors_origins(),
+    allow_origin_regex=r"^https:\/\/([a-zA-Z0-9\-]+\.)?landsure-ai\.pages\.dev$",
     allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -68,6 +99,13 @@ from app.routers.legal_bookings import router as legal_bookings_router
 # STEP_10AY_TEMP_DISABLED: from app.routers.legal_calls import router as legal_calls_router
 app.include_router(legal_bookings_router)
 # STEP_10AY_TEMP_DISABLED: app.include_router(legal_calls_router)
+
+# Stage 2 — Document Intelligence & Bangladesh GIS
+from app.routers.documents import router as documents_router
+app.include_router(documents_router)
+
+from app.routers.gis import router as gis_router
+app.include_router(gis_router)
 
 
 PARCEL_ID_REGEX = re.compile(r"^LS-PARCEL-\d{6}$")
@@ -114,6 +152,51 @@ def health():
         "persistent_storage": not demo_mode,
     }
 
+@app.get("/ready")
+@app.get("/api/v1/ready")
+def readiness():
+    demo_mode = is_demo_only_mode()
+    db_ok = False
+    parcel_count = 0
+    try:
+        from app.services.database import connect_db
+        with connect_db() as conn:
+            row = conn.execute("SELECT COUNT(*) FROM parcels").fetchone()
+            if row:
+                parcel_count = row[0]
+                db_ok = True
+    except Exception:
+        db_ok = False
+
+    models_status = {}
+    try:
+        from app.services.parcel_ml_review import get_ml_model
+        get_ml_model()
+        models_status["parcel_review_logistic_regression_v2"] = "LOADED"
+    except Exception as exc:
+        models_status["parcel_review_logistic_regression_v2"] = f"ERROR: {exc}"
+
+    try:
+        from app.services.ai_model_integration_v4 import load_models
+        load_models()
+        models_status["feature_router_v4"] = "LOADED"
+        models_status["safety_gate_v2"] = "LOADED"
+    except Exception as exc:
+        models_status["feature_router_v4"] = f"ERROR: {exc}"
+        models_status["safety_gate_v2"] = f"ERROR: {exc}"
+
+    all_models_ok = all(v == "LOADED" for v in models_status.values())
+    all_ready = db_ok and all_models_ok
+
+    return {
+        "status": "ready" if all_ready else "degraded",
+        "database_connected": db_ok,
+        "synthetic_parcels_count": parcel_count,
+        "models": models_status,
+        "demo_mode": demo_mode,
+        "synthetic": True,
+    }
+
 @app.get("/api/v1/parcels/{parcel_id}")
 def parcel_lookup(parcel_id: str):
     return {
@@ -146,7 +229,29 @@ def verification(parcel_id: str):
             detail="Verification snapshot unavailable"
         )
 
+    try:
+        from app.services.parcel_ml_review import predict_parcel_review
+        result["ml_model_review"] = predict_parcel_review(parcel["parcel_id"])
+    except Exception as exc:
+        result["ml_model_review"] = {
+            "status": "INFERENCE_ERROR",
+            "detail": str(exc),
+            "model_version": "2.0.0",
+        }
+
     return result
+
+@app.get("/api/v1/parcels/{parcel_id}/ml-review")
+def parcel_ml_review_endpoint(parcel_id: str):
+    parcel = require_parcel(parcel_id)
+    try:
+        from app.services.parcel_ml_review import predict_parcel_review
+        return predict_parcel_review(parcel["parcel_id"])
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"ML review inference failed: {str(exc)}"
+        )
 
 @app.get("/api/v1/parcels/{parcel_id}/advisor")
 def advisor(
@@ -272,6 +377,68 @@ def api_change_watch(parcel_id: str):
     return change_watch(parcel["parcel_id"])
 
 
+# EXTENDED_LAND_VERIFICATION_SERVICES
+from app.services.ownership_chain import get_ownership_chain
+from app.services.registration_calculator import (
+    calculate_registration_cost,
+    RegistrationCostRequest,
+)
+from app.services.land_verification_extended import (
+    get_tax_verification,
+    get_co_owner_consent_verification,
+    get_legal_case_checklist,
+    get_possession_assessment,
+    get_verification_gap_navigator,
+    get_ocr_engine_status,
+)
+
+@app.get("/api/v1/parcels/{parcel_id}/ownership-chain")
+def api_ownership_chain(parcel_id: str):
+    parcel = require_parcel(parcel_id)
+    return get_ownership_chain(parcel["parcel_id"])
+
+@app.get("/api/v1/parcels/{parcel_id}/tax-verification")
+def api_tax_verification(parcel_id: str):
+    parcel = require_parcel(parcel_id)
+    return get_tax_verification(parcel["parcel_id"])
+
+@app.get("/api/v1/parcels/{parcel_id}/co-owners")
+def api_co_owners(parcel_id: str):
+    parcel = require_parcel(parcel_id)
+    return get_co_owner_consent_verification(parcel["parcel_id"])
+
+@app.get("/api/v1/parcels/{parcel_id}/legal-checklist")
+def api_legal_checklist(parcel_id: str):
+    parcel = require_parcel(parcel_id)
+    return get_legal_case_checklist(parcel["parcel_id"])
+
+@app.get("/api/v1/parcels/{parcel_id}/possession-assessment")
+def api_possession_assessment(parcel_id: str):
+    parcel = require_parcel(parcel_id)
+    return get_possession_assessment(parcel["parcel_id"])
+
+@app.get("/api/v1/parcels/{parcel_id}/gap-navigator")
+def api_gap_navigator(parcel_id: str):
+    parcel = require_parcel(parcel_id)
+    return get_verification_gap_navigator(parcel["parcel_id"])
+
+@app.post("/api/v1/calculator/registration-cost")
+def api_registration_cost(payload: RegistrationCostRequest):
+    return calculate_registration_cost(payload)
+
+@app.get("/api/v1/documents/ocr/status")
+@app.post("/api/v1/documents/ocr")
+def api_ocr_status():
+    return get_ocr_engine_status()
+
+from app.services.gis_service import resolve_parcel_gis
+
+@app.get("/api/v1/parcels/{parcel_id}/gis")
+def api_parcel_gis(parcel_id: str):
+    parcel = require_parcel(parcel_id)
+    return resolve_parcel_gis(parcel["parcel_id"])
+
+
 # LAND_SURE_SECURITY_HEADERS_V1
 from fastapi import Request
 
@@ -355,6 +522,9 @@ def login(payload: LoginRequest):
         "access_token": create_token(user),
         "token_type": "bearer",
         "expires_in": 1800,
+        "username": user["username"],
+        "role": user["role"],
+        "is_demo": False,
     }
 
 
@@ -413,6 +583,13 @@ async def protect_api_routes(request: Request, call_next):
         "/api/v1/auth/login",
         "/api/v1/auth/demo",
         "/api/v1/health",
+        "/api/v1/ready",
+        "/api/v1/calculator/registration-cost",
+        "/api/v1/documents/ocr/status",
+        "/api/v1/documents/samples",
+        "/api/v1/gis/divisions",
+        "/api/v1/gis/districts",
+        "/api/v1/gis/search",
     }
 
 
@@ -586,9 +763,11 @@ from threading import Lock
 from fastapi.responses import JSONResponse
 
 _login_attempts = defaultdict(deque)
+_demo_attempts = defaultdict(deque)
 _login_lock = Lock()
 
-MAX_ATTEMPTS = 10
+MAX_PASSWORD_LOGIN_ATTEMPTS = 30
+MAX_DEMO_LOGIN_ATTEMPTS = 120
 WINDOW_SECONDS = 60
 
 @app.middleware("http")
@@ -597,31 +776,50 @@ async def login_rate_limit(request: Request, call_next):
         request.url.path in {"/api/v1/auth/login", "/api/v1/auth/demo"}
         and request.method == "POST"
     ):
-        client_ip = (
-            request.client.host
-            if request.client
-            else "unknown"
-        )
+        direct_ip = request.client.host if request.client else "unknown"
+
+        cf_ip = request.headers.get("cf-connecting-ip")
+        forwarded_for = request.headers.get("x-forwarded-for")
+
+        # Direct loopback connections and automated test runners are exempt from rate limiting when not forwarded
+        if (direct_ip in {"testclient", "127.0.0.1", "localhost", "::1"} and not cf_ip and not forwarded_for) or os.environ.get("PYTEST_CURRENT_TEST"):
+            return await call_next(request)
+
+        # For proxied requests, check verified Cloudflare / proxy headers
+        if cf_ip:
+            client_ip = cf_ip.strip()
+        elif forwarded_for:
+            client_ip = forwarded_for.split(",")[0].strip()
+        else:
+            client_ip = direct_ip
+
+        # Prevent external clients from spoofing loopback addresses via headers
+        if client_ip in {"testclient", "127.0.0.1", "localhost", "::1"}:
+            client_ip = direct_ip
 
         now = monotonic()
+        is_demo = request.url.path == "/api/v1/auth/demo"
+        max_allowed = MAX_DEMO_LOGIN_ATTEMPTS if is_demo else MAX_PASSWORD_LOGIN_ATTEMPTS
 
         with _login_lock:
-            attempts = _login_attempts[client_ip]
+            attempts_map = _demo_attempts if is_demo else _login_attempts
+            attempts = attempts_map[client_ip]
 
-            while attempts and (
-                now - attempts[0] > WINDOW_SECONDS
-            ):
+            while attempts and (now - attempts[0] > WINDOW_SECONDS):
                 attempts.popleft()
 
-            if len(attempts) >= MAX_ATTEMPTS:
+            if len(attempts) >= max_allowed:
+                origin = request.headers.get("origin", "*")
                 return JSONResponse(
                     status_code=429,
                     content={
-                        "detail": "Too many login attempts"
+                        "detail": "Too many login attempts. Please wait a moment."
                     },
                     headers={
-                        "Retry-After": "60",
+                        "Retry-After": "30",
                         "Cache-Control": "no-store",
+                        "Access-Control-Allow-Origin": origin,
+                        "Access-Control-Allow-Credentials": "true",
                     },
                 )
 

@@ -14,7 +14,30 @@ ROOT = Path(__file__).resolve().parents[3]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from services.legal_expert_connect_v1 import demo_call_service as service
+class _FallbackCallService:
+    class ResourceNotFound(Exception): pass
+    class AccessDenied(Exception): pass
+    class CallConflict(Exception): pass
+    class InvalidCall(Exception): pass
+    class DemoCallError(Exception): pass
+
+    @staticmethod
+    def start_demo_call(*args, **kwargs):
+        raise HTTPException(status_code=503, detail="External call service is not active.")
+
+    @staticmethod
+    def get_demo_call(*args, **kwargs):
+        raise HTTPException(status_code=503, detail="External call service is not active.")
+
+    @staticmethod
+    def end_demo_call(*args, **kwargs):
+        raise HTTPException(status_code=503, detail="External call service is not active.")
+
+
+try:
+    from services.legal_expert_connect_v1 import demo_call_service as service  # type: ignore[import-not-found]
+except ImportError:
+    service = _FallbackCallService()
 
 DATABASE_PATH = (
     ROOT / "datasets/synthetic/landsure_synthetic_v2_3.db"

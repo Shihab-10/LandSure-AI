@@ -215,3 +215,59 @@ input::placeholder { color: #657b91; }
   .chat-form-footer { flex-direction: column; }
   .login-card { padding: 25px; }
 }
+
+/* LandSure Extended Utilities */
+.tag { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; padding: 4px 9px; border-radius: 6px; }
+.tag.high { background: #4a1f28; color: #ff9e9a; border: 1px solid #793740; }
+.tag.medium { background: #3c321d; color: #ffd175; border: 1px solid #6c572b; }
+.tag.low { background: #123d33; color: #5ee6cb; border: 1px solid #1c6d5b; }
+.tag.info { background: #152d42; color: #78c2ea; border: 1px solid #234d6f; }
+.grid-2col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }
+.grid-3col { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }
+@media (max-width: 850px) {
+  .grid-2col, .grid-3col { grid-template-columns: 1fr; }
+}
+.calc-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
+.calc-table th { text-align: left; padding: 10px; border-bottom: 1px solid #24394d; color: #8ba2b7; font-size: 11px; }
+.calc-table td { padding: 11px 10px; border-bottom: 1px solid #1c2d3e; }
+.calc-total { font-weight: 800; font-size: 14px; color: #5ee6cb; background: #10292b; }
+.lawyer-card { background: #101d2d; border: 1px solid #213449; border-radius: 13px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+.lawyer-card:hover { border-color: #388d8b; }
+.badge-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.lang-toggle { background: #162a3d; border: 1px solid #28445e; color: #9bb7cf; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.lang-toggle:hover { color: #5ee6cb; border-color: #388d8b; }
+.section-card { margin-bottom: 20px; }
+
+/* Leaflet GIS Custom Styling */
+.gis-district-tooltip {
+  background: #0d1e2e !important;
+  color: #5ee6cb !important;
+  border: 1px solid #1c6d5b !important;
+  font-family: inherit !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+.gis-district-tooltip:before {
+  border-top-color: #1c6d5b !important;
+}
+.leaflet-popup-content-wrapper {
+  background: #0d1e2e !important;
+  color: #e7eef8 !important;
+  border-radius: 10px !important;
+  border: 1px solid #234054 !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important;
+}
+.leaflet-popup-tip {
+  background: #0d1e2e !important;
+}
+.leaflet-container {
+  font-family: 'DM Sans', sans-serif !important;
+}
+@media (max-width: 900px) {
+  .gis-grid-layout {
+    grid-template-columns: 1fr !important;
+  }
+}
+

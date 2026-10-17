@@ -1,4 +1,6 @@
 
+from typing import Any, Dict
+
 from app.services.intent import classify_query
 from app.services.bangla_router import (
     detect_explicit_bangla_intent,
@@ -7,7 +9,7 @@ from app.services.bangla_router import (
 def classify_query_v2(question):
     original = classify_query(question)
 
-    result = dict(original)
+    result: Dict[str, Any] = dict(original)
 
     explicit_intent = detect_explicit_bangla_intent(
         question

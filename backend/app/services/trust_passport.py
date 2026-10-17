@@ -172,7 +172,7 @@ def generate_trust_passport(parcel_id):
     surveys = get_related("survey_records", parcel_id)
     surveys.sort(
         key=lambda r: SURVEY_ORDER.get(
-            r.get("survey_type"), 99
+            str(r.get("survey_type") or ""), 99
         )
     )
 

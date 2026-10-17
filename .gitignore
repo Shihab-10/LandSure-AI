@@ -3,6 +3,7 @@
 .env.*
 .env.local
 !.env.example
+!.env.production
 *.pem
 *.key
 *.cert
@@ -54,6 +55,7 @@ Thumbs.db
 Desktop.ini
 .vscode/
 .idea/
+.gemini/
 *.swp
 *~
 *.log

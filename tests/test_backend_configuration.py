@@ -208,10 +208,12 @@ def test_auth_login_protection_roles_cors_and_token_revocation(
         )
         assert parcel.status_code == 200
         assert parcel.json()["synthetic"] is True
-        assert client.get(
+        legal_experts_res = client.get(
             "/api/v1/legal-experts",
             headers=headers,
-        ).status_code == 503
+        )
+        assert legal_experts_res.status_code == 200
+        assert legal_experts_res.json()["total_matches"] > 0
         assert client.post(
             "/api/v1/legal-chat/conversations",
             headers=headers,

@@ -16,36 +16,10 @@ router = APIRouter(
 
 DB_PATH = LAND_DB_PATH
 
-MATCHING_PATH = (
-    Path(__file__).resolve().parents[3]
-    / "services" / "legal_expert_connect_v1"
-    / "lawyer_matching.py"
+from app.services.lawyer_service import (
+    get_lawyers,
+    recommend_lawyers,
 )
-
-def connect():
-    return connect_db()
-
-def load_matching():
-    import importlib.util
-
-    if not MATCHING_PATH.is_file():
-        raise HTTPException(
-            status_code=503,
-            detail="Legal expert matching service is unavailable",
-        )
-
-    spec = importlib.util.spec_from_file_location(
-        "landsure_legal_matching",
-        MATCHING_PATH
-    )
-    if spec is None or spec.loader is None:
-        raise RuntimeError(
-            f"Unable to load legal expert matching service: {MATCHING_PATH}"
-        )
-
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
 
 class RecommendationRequest(BaseModel):
     verification_rules: list[str] = Field(
@@ -72,8 +46,7 @@ def list_legal_experts(
     ),
     limit: int = Query(default=20, ge=1, le=50)
 ):
-    module = load_matching()
-    lawyers = module.get_lawyers(DB_PATH)
+    lawyers = get_lawyers(DB_PATH)
 
     if location:
         lawyers = [
@@ -102,10 +75,8 @@ def list_legal_experts(
 def recommend_legal_experts(
     payload: RecommendationRequest
 ):
-    module = load_matching()
-
     try:
-        return module.recommend_lawyers(
+        return recommend_lawyers(
             DB_PATH,
             verification_rules=payload.verification_rules,
             preferred_location=payload.preferred_location,
@@ -120,7 +91,7 @@ def recommend_legal_experts(
 
 @router.get("/{lawyer_id}/availability")
 def get_legal_expert_availability(lawyer_id: str):
-    with connect() as conn:
+    with connect_db() as conn:
         lawyer = conn.execute(
             "SELECT lawyer_id FROM lawyer_profiles "
             "WHERE lawyer_id = ? AND is_synthetic = 1",
@@ -149,9 +120,7 @@ def get_legal_expert_availability(lawyer_id: str):
 
 @router.get("/{lawyer_id}")
 def get_legal_expert(lawyer_id: str):
-    module = load_matching()
-
-    lawyers = module.get_lawyers(DB_PATH)
+    lawyers = get_lawyers(DB_PATH)
 
     lawyer = next(
         (
