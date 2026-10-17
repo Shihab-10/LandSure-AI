@@ -46,6 +46,32 @@ interface ExtractedField {
   unit?: string;
 }
 
+interface FieldComparison {
+  field_key: string;
+  label_bn: string;
+  extracted_value: string | null;
+  reference_value: string | null;
+  status: "MATCH" | "MISMATCH" | "MISSING" | "NEEDS_HUMAN_REVIEW" | string;
+  status_bn: string;
+  evidence_location: string;
+  comparison_note_bn: string;
+}
+
+interface TargetParcelComparison {
+  parcel_id: string;
+  status: string;
+  summary: {
+    total_fields: number;
+    matched: number;
+    mismatched: number;
+    missing: number;
+    needs_human_review: number;
+    match_percentage: number;
+  };
+  field_comparisons: FieldComparison[];
+  disclaimer_bn?: string;
+}
+
 interface ExtractionResponse {
   status: string;
   ocr_metrics: {
@@ -71,12 +97,14 @@ interface ExtractionResponse {
     discrepancies: string[];
     disclaimer_bn: string;
   };
+  target_parcel_comparison?: TargetParcelComparison;
   raw_text: string;
 }
 
 interface DocumentIntelligenceProps {
   token: string;
   lang: "bn" | "en";
+  currentParcelId?: string;
   onSelectParcel: (parcelId: string) => void;
   onNavigateWorkflow: (target: "explorer" | "verification" | "tax_calc" | "ownership") => void;
   onSetCalculatorValues?: (deedValue: number, areaDecimal: number) => void;
@@ -85,6 +113,7 @@ interface DocumentIntelligenceProps {
 export const DocumentIntelligence: React.FC<DocumentIntelligenceProps> = ({
   token,
   lang,
+  currentParcelId,
   onSelectParcel,
   onNavigateWorkflow,
   onSetCalculatorValues,
@@ -161,6 +190,9 @@ export const DocumentIntelligence: React.FC<DocumentIntelligenceProps> = ({
 
     try {
       const payload: any = {};
+      if (currentParcelId) {
+        payload.target_parcel_id = currentParcelId;
+      }
       if (sample) {
         payload.sample_id = sample.id;
       } else if (uploadData) {
@@ -584,6 +616,141 @@ function formatErrorMessage(rawError: string, lang: "bn" | "en"): string {
               </div>
             </div>
           )}
+
+          {/* Target Parcel Field-by-Field Cross-Comparison Card */}
+          {extractionResult.target_parcel_comparison && (() => {
+            const sum = extractionResult.target_parcel_comparison.summary;
+            const matchCnt = sum.matched ?? 0;
+            const mismatchCnt = sum.mismatched ?? 0;
+            const reviewCnt = sum.needs_human_review ?? 0;
+            const missingCnt = sum.missing ?? 0;
+            const totalCnt = sum.total_fields || (matchCnt + mismatchCnt + reviewCnt + missingCnt) || 10;
+            const matchPct = sum.match_percentage ?? Math.round((matchCnt / totalCnt) * 100);
+
+            return (
+              <div className="panel" style={{ padding: "22px", border: "1px solid #1f4e5b", background: "linear-gradient(135deg, #0d1e2e, #09131f)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                      <FileCheck2 size={18} style={{ color: "#5ee6cb" }} />
+                      <h3 style={{ fontSize: "16px", margin: 0, color: "#e7eef8" }}>
+                        {lang === "bn" ? "দলিল বনাম রেকর্ড ফিল্ড-ভিত্তিক ক্রস-তুলনা" : "Deed vs Target Parcel Field Cross-Comparison"}
+                      </h3>
+                      <span className="tag info">{extractionResult.target_parcel_comparison.parcel_id}</span>
+                    </div>
+                    <p style={{ fontSize: "11px", color: "#8da2b7", margin: 0 }}>
+                      {lang === "bn"
+                        ? "দলিল থেকে সংগৃহীত তথ্যের সাথে পার্সেলের সার্ভে, মিউটেশন ও বালাম রেকর্ডের স্বয়ংক্রিয় তুলনা।"
+                        : "Automated field-by-field cross comparison against official survey, mutation, and registry records."}
+                    </p>
+                  </div>
+
+                  {/* Match Summary Badges */}
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                    <span className="tag low" style={{ background: "#123d33", color: "#5ee6cb", border: "1px solid #1c6d5b" }}>
+                      ✓ {matchCnt} {lang === "bn" ? "তথ্য মিলেছে (MATCH)" : "MATCH"}
+                    </span>
+                    {mismatchCnt > 0 && (
+                      <span className="tag high" style={{ background: "#3d181e", color: "#ffaaa8", border: "1px solid #6b2e35" }}>
+                        ✕ {mismatchCnt} {lang === "bn" ? "তথ্য মেলেনি (MISMATCH)" : "MISMATCH"}
+                      </span>
+                    )}
+                    {reviewCnt > 0 && (
+                      <span className="tag medium" style={{ background: "#3d2e14", color: "#ffd166", border: "1px solid #735324" }}>
+                        ⚠ {reviewCnt} {lang === "bn" ? "হিউম্যান রিভিউ প্রয়োজন" : "HUMAN REVIEW"}
+                      </span>
+                    )}
+                    {missingCnt > 0 && (
+                      <span className="tag" style={{ background: "#162332", color: "#8da2b7", border: "1px solid #23394d" }}>
+                        ○ {missingCnt} {lang === "bn" ? "অনুপস্থিত (MISSING)" : "MISSING"}
+                      </span>
+                    )}
+                    <span className="tag info" style={{ fontWeight: 700 }}>
+                      {matchPct}% {lang === "bn" ? "ম্যাচ রেট" : "Match"}
+                    </span>
+                  </div>
+                </div>
+
+              {/* Comparison Table */}
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", textAlign: "left" }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1px solid #23394d", color: "#8da2b7" }}>
+                      <th style={{ padding: "8px 10px" }}>{lang === "bn" ? "ফিল্ডের নাম" : "Field Name"}</th>
+                      <th style={{ padding: "8px 10px" }}>{lang === "bn" ? "দলিলের মান (OCR)" : "Extracted Value"}</th>
+                      <th style={{ padding: "8px 10px" }}>{lang === "bn" ? "পার্সেল রেকর্ড রেফারেন্স" : "Parcel Reference"}</th>
+                      <th style={{ padding: "8px 10px" }}>{lang === "bn" ? "তুলনা স্ট্যাটাস" : "Status"}</th>
+                      <th style={{ padding: "8px 10px" }}>{lang === "bn" ? "নোট ও প্রমাণের অবস্থান" : "Note & Provenance"}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {extractionResult.target_parcel_comparison.field_comparisons.map((fc, idx) => {
+                      const isMatch = fc.status === "MATCH";
+                      const isMismatch = fc.status === "MISMATCH";
+                      const isReview = fc.status === "NEEDS_HUMAN_REVIEW";
+                      return (
+                        <tr key={idx} style={{ borderBottom: "1px solid #162638", background: idx % 2 === 0 ? "rgba(13, 26, 41, 0.4)" : "transparent" }}>
+                          <td style={{ padding: "10px", fontWeight: 600, color: "#d8e5f0" }}>{fc.label_bn}</td>
+                          <td style={{ padding: "10px", color: fc.extracted_value ? "#5ee6cb" : "#6c7d93" }}>
+                            {fc.extracted_value || (lang === "bn" ? "— পাওয়া যায়নি —" : "— Not Found —")}
+                          </td>
+                          <td style={{ padding: "10px", color: "#a5b8cc" }}>
+                            {fc.reference_value || "—"}
+                          </td>
+                          <td style={{ padding: "10px" }}>
+                            <span
+                              className={`tag ${isMatch ? "low" : isMismatch ? "high" : isReview ? "medium" : ""}`}
+                              style={{
+                                fontSize: "10px",
+                                padding: "3px 8px",
+                                background: isMatch ? "#123d33" : isMismatch ? "#3d181e" : isReview ? "#3d2e14" : "#1a2736",
+                                color: isMatch ? "#5ee6cb" : isMismatch ? "#ffaaa8" : isReview ? "#ffd166" : "#8da2b7",
+                                border: `1px solid ${isMatch ? "#1c6d5b" : isMismatch ? "#6b2e35" : isReview ? "#735324" : "#2a3d52"}`
+                              }}
+                            >
+                              {lang === "bn" ? fc.status_bn : fc.status}
+                            </span>
+                          </td>
+                          <td style={{ padding: "10px", fontSize: "11px", color: "#8da2b7" }}>
+                            <div>{fc.comparison_note_bn}</div>
+                            <div style={{ fontSize: "10px", color: "#50708c", marginTop: "2px" }}>{fc.evidence_location}</div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Explicit Verification Guidance & Cryptographic Hash Disclaimers */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "12px", marginTop: "16px", paddingTop: "14px", borderTop: "1px solid #1c3349" }}>
+                <div style={{ background: "#112233", border: "1px solid #203e57", borderRadius: "8px", padding: "12px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", fontWeight: 700, color: "#ffd166", marginBottom: "4px" }}>
+                    <Info size={14} />
+                    {lang === "bn" ? "হস্তলিখিত দলিল ও প্রান্তীয় নোট (Marginalia):" : "Handwritten OCR Notice:"}
+                  </div>
+                  <p style={{ fontSize: "11px", color: "#a5b8cc", margin: 0, lineHeight: 1.5 }}>
+                    {lang === "bn"
+                      ? "বর্তমান ওসিআর পাইপলাইন মুদ্রিত বাংলা অক্ষরের জন্য অপটিমাইজড। হস্তলিখিত লেখা থাকলে সেটি 'হিউম্যান রিভিউ প্রয়োজন' হিসেবে চিহ্নিত হয়। Colab TrOCR ফাইন-টিউনিং ফ্রেমওয়ার্ক প্রস্তুত রয়েছে।"
+                      : "Current OCR engine processes printed Bengali text. Handwritten script and marginal notes are flagged for Human Review. Colab fine-tuning pipeline is ready for GPU training."}
+                  </p>
+                </div>
+
+                <div style={{ background: "#112233", border: "1px solid #203e57", borderRadius: "8px", padding: "12px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", fontWeight: 700, color: "#5ee6cb", marginBottom: "4px" }}>
+                    <ShieldAlert size={14} />
+                    {lang === "bn" ? "ক্রিপ্টোগ্রাফিক হ্যাশ বনাম আইনি সত্যতা:" : "Cryptographic Hash vs Legal Authenticity:"}
+                  </div>
+                  <p style={{ fontSize: "11px", color: "#a5b8cc", margin: 0, lineHeight: 1.5 }}>
+                    {lang === "bn"
+                      ? "SHA-256 ফাইল হ্যাশ নথির ফাইল অখণ্ডতা (Integrity) ও টেম্পারিং প্রতিরোধ নিশ্চিত করে। এটি সাব-রেজিস্ট্রি অফিসের মূল বালাম বইয়ের আনুষ্ঠানিক আইনি সত্যতা প্রমাণ করে না।"
+                      : "SHA-256 hash confirms digital file integrity and anti-tampering. It does not certify official government registration authenticity without registry book inspection."}
+                  </p>
+                </div>
+              </div>
+            </div>
+            );
+          })()}
 
           {/* User Review & Editable Field Form */}
           <div className="panel" style={{ padding: "22px" }}>

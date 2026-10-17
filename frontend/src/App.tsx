@@ -6,7 +6,8 @@ import {
   Globe2, History, LayoutDashboard, LockKeyhole, LogOut,
   MapPinned, Menu, Scale, Search, Send, ShieldAlert,
   ShieldCheck, Sparkles, X, Calculator, Bell,
-  Mic, MicOff, Volume2, Square, MessageSquare, AlertTriangle
+  Mic, MicOff, Volume2, Square, MessageSquare, AlertTriangle,
+  Eye, EyeOff, Calendar, Clock
 } from "lucide-react";
 import {
   apiRequest,
@@ -23,6 +24,7 @@ import {
 import { BangladeshMap } from "./components/BangladeshMap";
 import { DocumentIntelligence } from "./components/DocumentIntelligence";
 import { BuyerJourney } from "./components/BuyerJourney";
+import { NearbyLandAlternatives } from "./components/NearbyLandAlternatives";
 
 const navigation = [
   { id: "dashboard", labelBn: "আমার জমি (ওভারভিউ)", labelEn: "My Land (Overview)", icon: LayoutDashboard },
@@ -199,6 +201,23 @@ export default function App() {
   const [lawyerLocationFilter, setLawyerLocationFilter] = useState("");
   const [selectedLawyerSlots, setSelectedLawyerSlots] = useState<{ lawyerId: string; slots: Array<Record<string, unknown>> } | null>(null);
 
+  // Lawyer Consultation Demonstration Bookings
+  const [myBookings, setMyBookings] = useState<Array<Record<string, unknown>>>([]);
+  const [bookingSuccessMsg, setBookingSuccessMsg] = useState<string | null>(null);
+  const [bookingInProgress, setBookingInProgress] = useState(false);
+
+  // Parcel Change Watchlist & In-App Notifications
+  const [watchlist, setWatchlist] = useState<string[]>(() => {
+    try {
+      const u = user?.username || "demo-visitor";
+      const saved = localStorage.getItem(`landsure_watchlist_${u}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [watchedEvents, setWatchedEvents] = useState<Array<Record<string, unknown>>>([]);
+
   // Calculator State
   const [calcDeedValue, setCalcDeedValue] = useState(5000000);
   const [calcArea, setCalcArea] = useState(5.0);
@@ -253,6 +272,21 @@ export default function App() {
     return () => { active = false; };
   }, [token]);
 
+  // Sync user-specific watchlist from localStorage
+  useEffect(() => {
+    const u = user?.username || "demo-visitor";
+    try {
+      const saved = localStorage.getItem(`landsure_watchlist_${u}`);
+      if (saved) {
+        setWatchlist(JSON.parse(saved));
+      } else {
+        setWatchlist([]);
+      }
+    } catch {
+      // ignore
+    }
+  }, [user?.username]);
+
   // Load parcel data when parcelId or page changes
   useEffect(() => {
     if (!token || !parcelId.trim()) return;
@@ -294,10 +328,12 @@ export default function App() {
       runRegistrationCalculation();
     } else if (page === "lawyers") {
       loadLawyers();
+      loadMyBookings();
     } else if (page === "watchlist") {
       apiRequest<Record<string, unknown>>(`/api/v1/parcels/${cleanId}/events`, { token })
         .then(setEventsList)
         .catch(() => null);
+      loadWatchlistEvents();
     }
   }, [page, token, parcelId]);
 
@@ -531,6 +567,93 @@ export default function App() {
       setSelectedLawyerSlots({ lawyerId, slots: data.availability || [] });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load slots");
+    }
+  }
+
+  async function loadMyBookings() {
+    if (!token) return;
+    try {
+      const data = await apiRequest<{ bookings?: Array<Record<string, unknown>> }>("/api/v1/legal-bookings/my-bookings", { token });
+      setMyBookings(data.bookings || []);
+    } catch {
+      // Ignore
+    }
+  }
+
+  async function bookSlot(lawyerId: string, availabilityId: string, mode: "CHAT" | "DEMO_CALL" = "CHAT") {
+    if (!token) return;
+    setBookingInProgress(true);
+    setBookingSuccessMsg(null);
+    try {
+      const res = await apiRequest<Record<string, unknown>>("/api/v1/legal-bookings", {
+        method: "POST",
+        token,
+        body: JSON.stringify({
+          lawyer_id: lawyerId,
+          availability_id: availabilityId,
+          consultation_mode: mode,
+          parcel_id: parcelId || undefined
+        })
+      });
+      setBookingSuccessMsg(lang === "bn" ? `ডেমো পরামর্শ সফলভাবে সংরক্ষিত হয়েছে! রেফারেন্স: ${res.request_id}` : `Demo consultation confirmed! Ref: ${res.request_id}`);
+      await viewLawyerSlots(lawyerId);
+      await loadMyBookings();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Booking failed");
+    } finally {
+      setBookingInProgress(false);
+    }
+  }
+
+  async function cancelBooking(requestId: string) {
+    if (!token) return;
+    try {
+      await apiRequest<Record<string, unknown>>(`/api/v1/legal-bookings/${requestId}/cancel`, {
+        method: "POST",
+        token
+      });
+      await loadMyBookings();
+      if (selectedLawyerSlots) {
+        await viewLawyerSlots(selectedLawyerSlots.lawyerId);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Cancel failed");
+    }
+  }
+
+  function toggleWatchlist(pid: string) {
+    const clean = pid.trim().toUpperCase();
+    if (!clean) return;
+    const u = user?.username || "demo-visitor";
+    setWatchlist((prev) => {
+      const next = prev.includes(clean) ? prev.filter(x => x !== clean) : [...prev, clean];
+      try {
+        localStorage.setItem(`landsure_watchlist_${u}`, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }
+
+  async function loadWatchlistEvents() {
+    if (!token || watchlist.length === 0) return;
+    try {
+      const allEvents: Array<Record<string, unknown>> = [];
+      const seenEventIds = new Set<string>();
+      for (const pid of watchlist.slice(0, 5)) {
+        const d = await apiRequest<{ events?: Array<Record<string, unknown>> }>(`/api/v1/parcels/${encodeURIComponent(pid)}/events`, { token });
+        if (Array.isArray(d.events)) {
+          for (const ev of d.events) {
+            const eid = String(ev.event_id || `${pid}-${ev.event_date}`);
+            if (!seenEventIds.has(eid)) {
+              seenEventIds.add(eid);
+              allEvents.push({ ...ev, parcel_id: pid });
+            }
+          }
+        }
+      }
+      setWatchedEvents(allEvents);
+    } catch {
+      // Ignore
     }
   }
 
@@ -799,6 +922,43 @@ export default function App() {
               </span>
             </button>
 
+            {/* Watchlist & Change Watch Notification Bell */}
+            <button
+              onClick={() => setPage("watchlist")}
+              title={lang === "bn" ? "পার্সেল ওয়াচলিস্ট ও সাম্প্রতিক পরিবর্তন দেখুন" : "View parcel watchlist and recent changes"}
+              style={{
+                position: "relative",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: page === "watchlist" ? "#1b4d43" : "#0c1b2c",
+                border: "1px solid #1c3b57",
+                borderRadius: "50%",
+                width: "36px",
+                height: "36px",
+                color: page === "watchlist" ? "#5ee6cb" : "#8da2b7",
+                cursor: "pointer",
+              }}
+            >
+              <Bell size={16}/>
+              {watchlist.length > 0 && (
+                <span className="bell-badge" style={{
+                  position: "absolute",
+                  top: "-2px",
+                  right: "-2px",
+                  background: "#ff5252",
+                  color: "#fff",
+                  fontSize: "9px",
+                  fontWeight: 700,
+                  borderRadius: "10px",
+                  padding: "1px 5px",
+                  border: "1px solid #0c1827"
+                }}>
+                  {watchlist.length}
+                </span>
+              )}
+            </button>
+
             {/* Language Switcher */}
             <button
               className="lang-toggle"
@@ -841,6 +1001,25 @@ export default function App() {
                   </button>
                   <button className="secondary" onClick={() => navigateTo("search")} style={{ background: "#16283b", border: "1px solid #28445f", color: "#e7eef8", padding: "9px 15px", borderRadius: "8px", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
                     <MapPinned size={15}/> {lang === "bn" ? "মানচিত্রে দেখুন" : "View on Map"}
+                  </button>
+                  <button
+                    className="secondary"
+                    onClick={() => toggleWatchlist(parcelId)}
+                    title={watchlist.includes(parcelId) ? "Remove from watchlist" : "Add to watchlist"}
+                    style={{
+                      background: watchlist.includes(parcelId) ? "#123d33" : "#16283b",
+                      border: watchlist.includes(parcelId) ? "1px solid #1c6d5b" : "1px solid #28445f",
+                      color: watchlist.includes(parcelId) ? "#5ee6cb" : "#e7eef8",
+                      padding: "9px 15px",
+                      borderRadius: "8px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    {watchlist.includes(parcelId) ? <EyeOff size={15}/> : <Eye size={15}/>}
+                    {watchlist.includes(parcelId) ? (lang === "bn" ? "ওয়াচলিস্টে আছে (Watching)" : "Watching") : (lang === "bn" ? "ওয়াচলিস্টে রাখুন" : "Watch Parcel")}
                   </button>
                 </div>
               </div>
@@ -1071,6 +1250,15 @@ export default function App() {
                   </div>
                 </div>
               )}
+
+              {/* 2B. BANGLADESH ADMINISTRATIVE LOCATION SEARCH & NEARBY ALTERNATIVES */}
+              <NearbyLandAlternatives
+                token={token}
+                lang={lang}
+                currentParcelId={parcelId}
+                onSelectParcel={(newId) => selectParcel(newId)}
+                onNavigateWorkflow={(target) => navigateTo(target)}
+              />
             </>
           )}
 
@@ -1197,6 +1385,7 @@ export default function App() {
               <DocumentIntelligence
                 token={token}
                 lang={lang}
+                currentParcelId={parcelId}
                 onSelectParcel={(newId) => {
                   setParcelId(newId);
                   apiRequest<{ parcel?: Record<string, unknown> }>(`/api/v1/parcels/${encodeURIComponent(newId)}`, { token })
@@ -1610,19 +1799,96 @@ export default function App() {
                 </div>
               </div>
 
+              {bookingSuccessMsg && (
+                <div style={{ background: "#123d33", border: "1px solid #1c6d5b", color: "#5ee6cb", padding: "12px 16px", borderRadius: "8px", fontSize: "13px", marginBottom: "16px" }}>
+                  ✓ {bookingSuccessMsg}
+                </div>
+              )}
+
               {selectedLawyerSlots && (
-                <div className="panel section-card" style={{ borderColor: "#388d8b" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <h3>{lang === "bn" ? "উপলব্ধ পরামর্শ স্লট সমূহ" : "Available Consultation Slots"}</h3>
+                <div className="panel section-card" style={{ borderColor: "#388d8b", background: "linear-gradient(135deg, #0d1e2e, #09131f)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: "15px" }}>{lang === "bn" ? "উপলব্ধ পরামর্শ স্লট সমূহ" : "Available Consultation Slots"}</h3>
+                      <p style={{ margin: "2px 0 0", fontSize: "11px", color: "#8da2b7" }}>
+                        {lang === "bn" ? "যেকোনো একটি স্লট নির্বাচন করে সরাসরি ডেমো কনসালটেশন বুক করুন।" : "Select any available slot to simulate a demonstration consultation."}
+                      </p>
+                    </div>
                     <button className="icon-button" onClick={() => setSelectedLawyerSlots(null)}><X size={16}/></button>
                   </div>
                   <div className="record-data">
-                    {selectedLawyerSlots.slots.map((s: any, i: number) => (
-                      <div key={i} className="record-row">
-                        <span>{s.start_time} - {s.end_time}</span>
-                        <strong><span className="tag low">{s.availability_status}</span></strong>
+                    {selectedLawyerSlots.slots.map((s: any, i: number) => {
+                      const isAvail = s.availability_status === "AVAILABLE";
+                      return (
+                        <div key={i} className="record-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div>
+                            <span style={{ fontWeight: 600 }}>{s.start_time} — {s.end_time}</span>
+                            <span className={`tag ${isAvail ? "low" : "high"}`} style={{ marginLeft: "10px" }}>
+                              {s.availability_status}
+                            </span>
+                          </div>
+                          {isAvail ? (
+                            <button
+                              className="primary"
+                              disabled={bookingInProgress}
+                              onClick={() => bookSlot(selectedLawyerSlots.lawyerId, s.availability_id, "CHAT")}
+                              style={{ padding: "5px 12px", fontSize: "11px" }}
+                            >
+                              {bookingInProgress ? (lang === "bn" ? "বুকিং হচ্ছে..." : "Booking...") : (lang === "bn" ? "ডেমো বুকিং করুন" : "Book Demo Slot")}
+                            </button>
+                          ) : (
+                            <span style={{ fontSize: "11px", color: "#8da2b7" }}>{lang === "bn" ? "বুকড" : "Reserved"}</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* My Active & Past Consultation Bookings */}
+              {myBookings.length > 0 && (
+                <div className="panel section-card" style={{ borderColor: "#1f4e5b", background: "linear-gradient(135deg, #0c1c2e, #09131f)", marginBottom: "20px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <Calendar size={18} style={{ color: "#5ee6cb" }}/>
+                      <h3 style={{ margin: 0, fontSize: "15px" }}>{lang === "bn" ? "আমার পরামর্শ বুকিং তালিকা" : "My Consultation Bookings"}</h3>
+                    </div>
+                    <span className="tag info">{myBookings.length} {lang === "bn" ? "বুকিং" : "Bookings"}</span>
+                  </div>
+
+                  <div className="record-data">
+                    {myBookings.map((b: any, idx: number) => (
+                      <div key={idx} className="record-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+                        <div>
+                          <strong>{b.lawyer_name || b.lawyer_id}</strong>
+                          <span style={{ color: "#8da2b7", marginLeft: "8px", fontSize: "11px" }}>{b.location} · মোড: {b.consultation_mode}</span>
+                          <div style={{ fontSize: "11px", color: "#5ee6cb", marginTop: "3px" }}>
+                            স্লট: {b.slot ? `${b.slot.start_time} - ${b.slot.end_time}` : "নির্ধারিত সময়"} · আইডি: {b.request_id}
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span className={`tag ${b.status === "CONFIRMED_DEMO" ? "low" : "high"}`}>
+                            {b.status}
+                          </span>
+                          {b.status === "CONFIRMED_DEMO" && (
+                            <button
+                              className="secondary"
+                              onClick={() => cancelBooking(b.request_id)}
+                              style={{ background: "#3d181e", border: "1px solid #6b2e35", color: "#ffaaa8", padding: "4px 8px", borderRadius: "6px", fontSize: "10px", cursor: "pointer" }}
+                            >
+                              {lang === "bn" ? "বাতিল করুন" : "Cancel"}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
+                  </div>
+
+                  <div style={{ marginTop: "12px", background: "#112233", border: "1px solid #1c354d", borderRadius: "6px", padding: "8px 12px", fontSize: "11px", color: "#8da2b7" }}>
+                    ℹ {lang === "bn"
+                      ? "ডেমো সিমুলেশন নোটিশ: এটি একটি সিমুলেটেড বুকিং প্রদর্শনী। কোনো প্রকৃত আর্থিক লেনদেন বা উকিল-মক্কেল আইনি চুক্তি গঠিত হয় না।"
+                      : "Simulation Notice: This is a synthetic demo booking workflow. No real financial transaction or attorney-client relationship is created."}
                   </div>
                 </div>
               )}
@@ -1667,27 +1933,94 @@ export default function App() {
                 </div>
               </div>
 
-              {eventsList && (
-                <div className="panel">
-                  <div className="evidence-detail-top">
-                    <div className="action-icon"><Activity size={20}/></div>
-                    <span className="tag info">{String(eventsList.total_events || 0)} Total Events</span>
+              {/* Watched Parcels Manager */}
+              <div className="panel section-card" style={{ borderColor: "#1f4e5b", background: "linear-gradient(135deg, #0c1c2e, #09131f)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", flexWrap: "wrap", gap: "10px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Eye size={18} style={{ color: "#5ee6cb" }}/>
+                    <h3 style={{ margin: 0, fontSize: "15px" }}>{lang === "bn" ? "সক্রিয় ওয়াচলিস্ট পার্সেলসমূহ" : "Active Watched Parcels"}</h3>
                   </div>
-                  <h3>{lang === "bn" ? "রেকর্ডকৃত পার্সেল পরিবর্তনের তালিকা" : "Event Timeline"}</h3>
-                  {Array.isArray(eventsList.events) && eventsList.events.length > 0 ? (
-                    <div className="record-data">
-                      {eventsList.events.map((ev: any, idx: number) => (
-                        <div key={idx} className="record-row">
-                          <span>{ev.event_date || "Date N/A"} · {ev.event_type}</span>
-                          <strong>{ev.event_description || ev.event_id}</strong>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p style={{ marginTop: "14px", color: "#8da2b7" }}>{lang === "bn" ? "এই পার্সেলের কোনো সাম্প্রতিক পরিবর্তন রেকর্ড নেই।" : "No recorded events for this parcel."}</p>
-                  )}
+                  <button
+                    className="primary"
+                    onClick={() => toggleWatchlist(parcelId)}
+                    style={{ padding: "6px 12px", fontSize: "11px" }}
+                  >
+                    {watchlist.includes(parcelId)
+                      ? (lang === "bn" ? `✓ বর্তমান পার্সেল (${parcelId}) ওয়াচলিস্টে আছে` : `✓ Current (${parcelId}) is Watched`)
+                      : (lang === "bn" ? `+ বর্তমান পার্সেল (${parcelId}) ওয়াচলিস্টে যোগ করুন` : `+ Add Current (${parcelId}) to Watchlist`)}
+                  </button>
                 </div>
-              )}
+
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  {watchlist.map(pid => (
+                    <div
+                      key={pid}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        background: pid === parcelId ? "#123d33" : "#16283b",
+                        border: pid === parcelId ? "1px solid #1c6d5b" : "1px solid #28445f",
+                        borderRadius: "20px",
+                        padding: "4px 12px",
+                        fontSize: "12px",
+                        color: pid === parcelId ? "#5ee6cb" : "#e7eef8",
+                      }}
+                    >
+                      <button
+                        onClick={() => selectParcel(pid)}
+                        style={{ background: "transparent", border: "none", color: "inherit", cursor: "pointer", fontWeight: 600, padding: 0 }}
+                      >
+                        {pid}
+                      </button>
+                      <button
+                        onClick={() => toggleWatchlist(pid)}
+                        title="Remove from watchlist"
+                        style={{ background: "transparent", border: "none", color: "#8da2b7", cursor: "pointer", padding: "0 2px" }}
+                      >
+                        <X size={12}/>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Event Timeline */}
+              <div className="panel">
+                <div className="evidence-detail-top">
+                  <div className="action-icon"><Activity size={20}/></div>
+                  <span className="tag info">{String(eventsList?.total_events || watchedEvents.length || 0)} Total Events</span>
+                </div>
+                <h3>{lang === "bn" ? `${parcelId} — রেকর্ডকৃত পার্সেল পরিবর্তনের তালিকা` : `Event Timeline (${parcelId})`}</h3>
+                
+                {Array.isArray(eventsList?.events) && eventsList.events.length > 0 ? (
+                  <div className="record-data">
+                    {eventsList.events.map((ev: any, idx: number) => (
+                      <div key={idx} className="record-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                          <span style={{ fontWeight: 600, color: "#e7eef8" }}>{ev.event_description || ev.event_id}</span>
+                          <div style={{ fontSize: "11px", color: "#8da2b7", marginTop: "2px" }}>
+                            {ev.event_date || "Date N/A"} · ধরন: {ev.event_type}
+                          </div>
+                        </div>
+                        <span className="tag low">{ev.event_type}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ marginTop: "14px", color: "#8da2b7" }}>{lang === "bn" ? "এই পার্সেলের কোনো সাম্প্রতিক পরিবর্তন রেকর্ড নেই।" : "No recorded events for this parcel."}</p>
+                )}
+
+                {/* Statutory Monitoring Disclaimer */}
+                <div style={{ marginTop: "16px", background: "#112233", border: "1px solid #1c354d", borderRadius: "8px", padding: "12px", fontSize: "11px", color: "#8da2b7", lineHeight: 1.5 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#ffd166", fontWeight: 700, marginBottom: "4px" }}>
+                    <ShieldAlert size={14}/> {lang === "bn" ? "সরকারি রেকর্ড মনিটরিং নোটিশ:" : "Official Monitoring Notice:"}
+                  </div>
+                  {lang === "bn"
+                    ? "এই ওয়াচলিস্ট সংরক্ষিত ডাটাবেজ ইভেন্ট লগের ভিত্তিতে পার্সেল পরিবর্তন প্রদর্শন করে। কোনো অননুমোদিত উপায়ে সরকারি সার্ভার স্ক্র্যাপ বা লাইভ মনিটর করা হয় না। প্রকৃত মালিকানা হালনাগাদের জন্য স্থানীয় ভূমি অফিসে অনুসন্ধান করুন।"
+                    : "This change watch engine monitors database audit logs. Live government land portal surveillance is not claimed without authorized API gateway access."}
+                </div>
+              </div>
             </>
           )}
 

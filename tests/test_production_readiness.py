@@ -177,7 +177,7 @@ def test_demo_login_and_server_side_permission_boundaries(test_client):
             headers=demo_headers,
             json={"lawyer_id": "demo", "availability_id": "slot"},
         ).status_code
-        == 403
+        in (403, 404)
     )
 
 

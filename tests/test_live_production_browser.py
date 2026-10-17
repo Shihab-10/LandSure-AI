@@ -12,10 +12,12 @@ import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
-if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8")
-if hasattr(sys.stderr, "reconfigure"):
-    sys.stderr.reconfigure(encoding="utf-8")
+reconfig_stdout = getattr(sys.stdout, "reconfigure", None)
+if callable(reconfig_stdout):
+    reconfig_stdout(encoding="utf-8")
+reconfig_stderr = getattr(sys.stderr, "reconfigure", None)
+if callable(reconfig_stderr):
+    reconfig_stderr(encoding="utf-8")
 
 CHROME_PATH = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
 LIVE_FRONTEND_URL = "https://landsure-ai.pages.dev"
@@ -42,11 +44,13 @@ def test_live_production_end_to_end():
 
         # Step 1: Navigate to Live Site
         print("1. Loading live frontend...")
-        page.goto(LIVE_FRONTEND_URL, wait_until="networkidle", timeout=30000)
+        page.goto(LIVE_FRONTEND_URL, wait_until="domcontentloaded", timeout=45000)
+        page.wait_for_selector(".login-card", timeout=20000)
 
         # Clear any old storage for fresh test
         page.evaluate("() => localStorage.clear()")
-        page.reload(wait_until="networkidle")
+        page.reload(wait_until="domcontentloaded")
+        page.wait_for_selector(".login-card", timeout=20000)
 
         # Verify Welcome Card
         assert page.locator(".login-card").is_visible(), "Live welcome card should be visible"
@@ -59,8 +63,8 @@ def test_live_production_end_to_end():
         assert demo_btn.is_visible(), "One-click demo button must be visible"
         demo_btn.click()
 
-        # Wait for App Shell
-        page.wait_for_selector(".app-shell", timeout=20000)
+        # Wait for App Shell (allow up to 60s for Render free-tier cold boot)
+        page.wait_for_selector(".app-shell", timeout=60000)
         assert page.locator(".app-shell").is_visible(), "App shell should be visible after login"
 
         # Verify Token in localStorage

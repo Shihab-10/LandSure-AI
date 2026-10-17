@@ -83,12 +83,22 @@ interface ParcelGIS {
   };
 }
 
+export interface AlternativeLandPin {
+  parcel_id: string;
+  latitude: number;
+  longitude: number;
+  display_name_bn: string;
+  distance_km?: number;
+  asking_price_bdt?: number | null;
+}
+
 interface BangladeshMapProps {
   token: string;
   initialParcelId?: string;
   lang: "bn" | "en";
   onSelectParcel?: (parcelId: string) => void;
   onNavigateWorkflow?: (target: string) => void;
+  alternativePins?: AlternativeLandPin[];
 }
 
 export const BangladeshMap: React.FC<BangladeshMapProps> = ({
@@ -97,12 +107,14 @@ export const BangladeshMap: React.FC<BangladeshMapProps> = ({
   lang,
   onSelectParcel,
   onNavigateWorkflow,
+  alternativePins,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const parcelLayerRef = useRef<L.LayerGroup | null>(null);
   const districtMarkersRef = useRef<L.LayerGroup | null>(null);
   const searchMarkerRef = useRef<L.LayerGroup | null>(null);
+  const alternativesLayerRef = useRef<L.LayerGroup | null>(null);
 
   const [districts, setDistricts] = useState<District[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -182,6 +194,7 @@ export const BangladeshMap: React.FC<BangladeshMapProps> = ({
     districtMarkersRef.current = L.layerGroup().addTo(map);
     parcelLayerRef.current = L.layerGroup().addTo(map);
     searchMarkerRef.current = L.layerGroup().addTo(map);
+    alternativesLayerRef.current = L.layerGroup().addTo(map);
 
     mapInstanceRef.current = map;
 
@@ -361,6 +374,52 @@ export const BangladeshMap: React.FC<BangladeshMapProps> = ({
     // Zoom and Pan to parcel polygon bounds
     map.flyToBounds(polygon.getBounds(), { maxZoom: 16, duration: 1.4 });
   };
+
+  // Render Alternative Land Pins
+  useEffect(() => {
+    if (!alternativesLayerRef.current) return;
+    const layer = alternativesLayerRef.current;
+    layer.clearLayers();
+    if (!alternativePins || alternativePins.length === 0) return;
+
+    alternativePins.forEach((pin) => {
+      if (!pin.latitude || !pin.longitude) return;
+      const marker = L.circleMarker([pin.latitude, pin.longitude], {
+        radius: 6,
+        color: "#5ee6cb",
+        fillColor: "#059669",
+        fillOpacity: 0.9,
+        weight: 2,
+      });
+
+      const priceText =
+        pin.asking_price_bdt != null
+          ? `৳ ${pin.asking_price_bdt.toLocaleString("bn-BD")}`
+          : "মূল্য দেওয়া হয়নি";
+
+      marker.bindPopup(`
+        <div style="color: #e7eef8; font-size: 12px; padding: 4px; font-family: sans-serif;">
+          <div style="color: #5ee6cb; font-weight: 700; margin-bottom: 2px;">কাছাকাছি বিকল্প জমি</div>
+          <div style="font-weight: 600; color: #fff;">${pin.parcel_id}</div>
+          <div style="font-size: 11px; color: #94a3b8; margin: 2px 0;">${pin.display_name_bn || ""}</div>
+          ${pin.distance_km != null ? `<div style="font-size: 11px; color: #38bdf8;">দূরত্ব: ${pin.distance_km} কিমি</div>` : ""}
+          <div style="font-size: 11px; color: #f59e0b; font-weight: 600; margin-top: 2px;">${priceText}</div>
+          <button id="btn-select-${pin.parcel_id}" style="margin-top: 6px; width: 100%; background: #059669; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;">এই জমিটি দেখুন</button>
+        </div>
+      `);
+
+      marker.on("popupopen", () => {
+        const btn = document.getElementById(`btn-select-${pin.parcel_id}`);
+        if (btn) {
+          btn.onclick = () => {
+            if (onSelectParcel) onSelectParcel(pin.parcel_id);
+          };
+        }
+      });
+
+      marker.addTo(layer);
+    });
+  }, [alternativePins, onSelectParcel]);
 
   // Reset to nationwide Bangladesh overview
   const resetToBangladeshView = () => {

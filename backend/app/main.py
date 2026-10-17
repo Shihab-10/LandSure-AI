@@ -589,7 +589,10 @@ async def protect_api_routes(request: Request, call_next):
         "/api/v1/documents/samples",
         "/api/v1/gis/divisions",
         "/api/v1/gis/districts",
+        "/api/v1/gis/upazilas",
+        "/api/v1/gis/mouzas",
         "/api/v1/gis/search",
+        "/api/v1/gis/parcels/search",
     }
 
 

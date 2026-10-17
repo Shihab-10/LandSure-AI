@@ -458,7 +458,7 @@ def process_assistant_query(
                     f"• **মালিকের নাম:** {parcel.get('owner_name')}\n"
                     f"• **মৌজা ও জেলা:** {parcel.get('mouza_name_bn')} ({parcel.get('mouza_code')}), {parcel.get('district_code')}\n"
                     f"• **রেফারেন্স আয়তন:** {parcel.get('reference_area_decimal')} শতাংশ ({parcel.get('land_classification_bn')})\n"
-                    f"• **এমএল ঝুঁকি স্তর:** {ml_res.get('risk_level')} (পর্যালোচনা সম্ভাবনা: {ml_res.get('review_probability')*100:.1f}%)\n"
+                    f"• **এমএল ঝুঁকি স্তর:** {ml_res.get('risk_level')} (পর্যালোচনা সম্ভাবনা: {((ml_res.get('review_probability') or 0.0) * 100):.1f}%)\n"
                     f"• **ঝুঁকি সংকেত:** {', '.join(ml_res.get('key_risk_signals', [])) or 'কোনো গুরুতর অসঙ্গতি নেই'}\n"
                     f"• **খাজনা অবস্থা:** {'দাখিলা পাওয়া গেছে' if tax_res.get('records') else 'সরেজমিন/ldtax.gov.bd যাচাই আবশ্যক'}"
                 )

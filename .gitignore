@@ -45,9 +45,14 @@ htmlcov/
 private/
 **/private/
 landsure_auth*.db
+*.local*.db
+*.backup*.db
+scratch/
+**/scratch/
 *.db-journal
 *.db-wal
 *.db-shm
+
 
 # OS & Editor Files
 .DS_Store
