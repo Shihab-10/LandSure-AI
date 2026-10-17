@@ -132,7 +132,15 @@ def get_ml_model():
     if _CACHED_MODEL is None:
         if not MODEL_PATH.is_file():
             raise FileNotFoundError(f"Model file not found: {MODEL_PATH}")
-        _CACHED_MODEL = joblib.load(MODEL_PATH)
+        model = joblib.load(MODEL_PATH)
+        # Cross-version scikit-learn compatibility patch for SimpleImputer
+        if hasattr(model, "named_steps") and "imputer" in model.named_steps:
+            imp = model.named_steps["imputer"]
+            if not hasattr(imp, "_fill_dtype") and hasattr(imp, "_fit_dtype"):
+                imp._fill_dtype = imp._fit_dtype
+            elif not hasattr(imp, "_fit_dtype") and hasattr(imp, "_fill_dtype"):
+                imp._fit_dtype = imp._fill_dtype
+        _CACHED_MODEL = model
     return _CACHED_MODEL
 
 
