@@ -64,3 +64,6 @@ Desktop.ini
 *.swp
 *~
 *.log
+
+# Reference Sources
+reference_sources/

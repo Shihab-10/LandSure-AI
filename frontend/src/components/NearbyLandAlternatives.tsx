@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 import {
   MapPin, Compass, Search, ArrowRight, ShieldCheck, ShieldAlert,
   AlertTriangle, CheckCircle2, RotateCcw, Scale, PhoneCall,
-  Flag, Info, X, DollarSign, Layers
+  Flag, Info, X, DollarSign, Layers, Bookmark, BookmarkCheck, Sparkles, Eye
 } from "lucide-react";
 import { apiRequest } from "../api";
+import { onSpotlightMove, onSpotlightLeave } from "./common/Spotlight";
 
 interface NearbyLandAlternativesProps {
   token: string;
@@ -13,6 +14,9 @@ interface NearbyLandAlternativesProps {
   onSelectParcel: (parcelId: string) => void;
   onNavigateToMap?: () => void;
   onNavigateWorkflow?: (target: string) => void;
+  onVerifyParcel?: (parcelId: string) => void;
+  watchlist?: string[];
+  onToggleWatchlist?: (parcelId: string) => void;
 }
 
 interface LocationOption {
@@ -91,6 +95,10 @@ export const NearbyLandAlternatives: React.FC<NearbyLandAlternativesProps> = ({
   lang,
   onSelectParcel,
   onNavigateToMap,
+  onNavigateWorkflow,
+  onVerifyParcel,
+  watchlist = [],
+  onToggleWatchlist,
 }) => {
   // Cascading Location Selector State
   const [divisions, setDivisions] = useState<LocationOption[]>([]);
@@ -519,42 +527,93 @@ export const NearbyLandAlternatives: React.FC<NearbyLandAlternativesProps> = ({
             <div style={{ fontSize: "12px", color: "#5ee6cb", fontWeight: 700, marginBottom: "8px" }}>
               খুঁজে পাওয়া পার্সেল রেকর্ডসমূহ ({searchResults.length}টি):
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "10px" }}>
-              {searchResults.map((p) => (
-                <div
-                  key={p.parcel_id}
-                  style={{
-                    padding: "12px",
-                    background: p.parcel_id === currentParcelId ? "#12382f" : "#0d1725",
-                    border: `1px solid ${p.parcel_id === currentParcelId ? "#1b6658" : "#1e2d3d"}`,
-                    borderRadius: "8px",
-                    display: "grid",
-                    gap: "6px",
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <strong style={{ color: "#5ee6cb", fontSize: "13px" }}>{p.parcel_id}</strong>
-                    <span style={{ fontSize: "11px", color: "#f2c77c" }}>{p.area_bn}</span>
-                  </div>
-                  <div style={{ fontSize: "11px", color: "#8da2b7" }}>
-                    {p.location_hierarchy?.mouza_bn}, {p.location_hierarchy?.upazila_bn}, {p.location_hierarchy?.district_bn}
-                  </div>
-                  <div style={{ fontSize: "12px", fontWeight: 700, color: p.asking_price_bdt ? "#e7eef8" : "#8da2b7" }}>
-                    {p.price_formatted_bn}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onSelectParcel(p.parcel_id);
-                      if (onNavigateToMap) onNavigateToMap();
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "12px" }}>
+              {searchResults.map((p) => {
+                const isSaved = watchlist.includes(p.parcel_id);
+                return (
+                  <div
+                    key={p.parcel_id}
+                    className="ls-spotlight-interactive"
+                    onPointerMove={(e) => onSpotlightMove(e, "1")}
+                    onPointerLeave={onSpotlightLeave}
+                    style={{
+                      padding: "14px",
+                      background: p.parcel_id === currentParcelId ? "rgba(13, 148, 136, 0.15)" : "var(--ls-surface, #0B1513)",
+                      border: `1px solid ${p.parcel_id === currentParcelId ? "var(--ls-mint, #5EEAD4)" : "rgba(13, 148, 136, 0.25)"}`,
+                      borderRadius: "12px",
+                      display: "grid",
+                      gap: "8px",
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
                     }}
-                    className="button secondary"
-                    style={{ marginTop: "4px", padding: "4px 8px", fontSize: "11px", width: "100%", justifyContent: "center" }}
                   >
-                    {p.parcel_id === currentParcelId ? "✓ বর্তমানে নির্বাচিত" : "এই জমি নির্বাচন করুন ➔"}
-                  </button>
-                </div>
-              ))}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <strong style={{ color: "var(--ls-mint, #5EEAD4)", fontSize: "14px", fontFamily: "var(--font-mono, monospace)" }}>
+                        {p.parcel_id}
+                      </strong>
+                      <span style={{ fontSize: "11px", color: "#f2c77c", fontWeight: 600 }}>{p.area_bn}</span>
+                    </div>
+                    <div style={{ fontSize: "11px", color: "var(--ls-text-secondary, #A6BDB5)" }}>
+                      {p.location_hierarchy?.mouza_bn}, {p.location_hierarchy?.upazila_bn}, {p.location_hierarchy?.district_bn}
+                    </div>
+                    <div style={{ fontSize: "13px", fontWeight: 700, color: p.asking_price_bdt ? "#4ade80" : "#8da2b7" }}>
+                      {p.price_formatted_bn}
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginTop: "4px" }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onVerifyParcel) {
+                            onVerifyParcel(p.parcel_id);
+                          } else {
+                            onSelectParcel(p.parcel_id);
+                            if (onNavigateWorkflow) onNavigateWorkflow("journey");
+                          }
+                        }}
+                        className="button primary"
+                        style={{
+                          padding: "7px 10px",
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          justifyContent: "center",
+                          background: "var(--ls-emerald, #0D9488)",
+                          color: "#080D0C",
+                          borderRadius: "8px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <ShieldAlert size={12} /> {lang === "bn" ? "এই জমি যাচাই" : "Verify"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSelectParcel(p.parcel_id);
+                          if (onNavigateToMap) onNavigateToMap();
+                        }}
+                        className="button secondary"
+                        style={{
+                          padding: "7px 10px",
+                          fontSize: "11px",
+                          fontWeight: 600,
+                          justifyContent: "center",
+                          borderRadius: "8px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          cursor: "pointer",
+                          background: "var(--ls-elevated, #10231F)",
+                          color: "#F4F7F5",
+                          border: "1px solid rgba(255,255,255,0.12)",
+                        }}
+                      >
+                        {p.parcel_id === currentParcelId ? "✓ নির্বাচিত" : (lang === "bn" ? "মানচিত্রে ➔" : "View Map ➔")}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -645,83 +704,157 @@ export const NearbyLandAlternatives: React.FC<NearbyLandAlternativesProps> = ({
             {radiusKm} কিলোমিটার ব্যাসার্ধের মধ্যে কোনো বিকল্প জমি রেকর্ড পাওয়া যায়নি। পরিসীমা বাড়িয়ে দেখুন।
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "18px" }}>
             {alternatives.map((alt) => {
               const isComparing = compareList.includes(alt.parcel_id);
+              const isSaved = watchlist.includes(alt.parcel_id);
               return (
                 <div
                   key={alt.parcel_id}
-                  className="alternative-card"
+                  className="alternative-card ls-spotlight-interactive"
+                  onPointerMove={(e) => onSpotlightMove(e, "1")}
+                  onPointerLeave={onSpotlightLeave}
                   style={{
-                    background: "#0d1725",
-                    border: "1px solid #1e2d3d",
-                    borderRadius: "10px",
-                    padding: "16px",
+                    background: "var(--ls-surface, #0B1513)",
+                    border: "1px solid rgba(13, 148, 136, 0.28)",
+                    borderRadius: "14px",
+                    padding: "18px",
                     display: "grid",
-                    gap: "10px",
+                    gap: "12px",
                     position: "relative",
+                    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.35)",
+                    transition: "all 0.22s ease",
                   }}
                 >
                   {/* Header: ID, Distance & Risk Badge */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px" }}>
                     <div>
-                      <strong style={{ fontSize: "15px", color: "#5ee6cb", display: "block" }}>
-                        {alt.parcel_id}
-                      </strong>
-                      <span style={{ fontSize: "11px", color: "#9bb7cf", display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
-                        <MapPin size={12} style={{ color: "#4ade80" }} /> {alt.distance_bn}
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <strong style={{ fontSize: "15px", color: "var(--ls-mint, #5EEAD4)", fontFamily: "var(--font-mono, monospace)", letterSpacing: "-0.01em" }}>
+                          {alt.parcel_id}
+                        </strong>
+                        {isSaved && (
+                          <span style={{ fontSize: "10px", background: "rgba(94, 234, 212, 0.15)", color: "var(--ls-mint, #5EEAD4)", border: "1px solid rgba(94, 234, 212, 0.3)", borderRadius: "4px", padding: "1px 5px", fontWeight: 700 }}>
+                            {lang === "bn" ? "সংরক্ষিত" : "Saved"}
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: "11px", color: "var(--ls-text-secondary, #A6BDB5)", display: "flex", alignItems: "center", gap: "4px", marginTop: "3px" }}>
+                        <MapPin size={12} style={{ color: "#4ade80", flexShrink: 0 }} /> {alt.distance_bn}
                       </span>
                     </div>
-                    <span className={`badge ${getRiskBadgeClass(alt.risk_color)}`} style={{ fontSize: "10px", padding: "3px 8px" }}>
+                    <span className={`badge ${getRiskBadgeClass(alt.risk_color)}`} style={{ fontSize: "10.5px", padding: "3px 9px", fontWeight: 700, borderRadius: "6px" }}>
                       {alt.risk_label_bn}
                     </span>
                   </div>
 
                   {/* Location & Area */}
-                  <div style={{ fontSize: "12px", color: "#8da2b7" }}>
-                    <div>{alt.location.mouza_bn}, {alt.location.upazila_bn}, {alt.location.district_bn}</div>
-                    <div style={{ color: "#e7eef8", fontWeight: 600, marginTop: "2px" }}>
-                      জমির আয়তন: <span style={{ color: "#f2c77c" }}>{alt.area_bn}</span>
+                  <div style={{ fontSize: "12px", color: "var(--ls-text-secondary, #A6BDB5)", lineHeight: 1.5 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                      <Layers size={13} style={{ color: "var(--ls-emerald, #0D9488)", flexShrink: 0 }} />
+                      <span className="truncate">{alt.location.mouza_bn}, {alt.location.upazila_bn}, {alt.location.district_bn}</span>
+                    </div>
+                    <div style={{ color: "#F4F7F5", fontWeight: 600, marginTop: "3px" }}>
+                      {lang === "bn" ? "রেকর্ডকৃত জমির আয়তন:" : "Recorded Area:"}{" "}
+                      <span style={{ color: "#f2c77c", fontWeight: 700 }}>{alt.area_bn}</span>
                     </div>
                   </div>
 
                   {/* Price Section */}
-                  <div style={{ padding: "8px 10px", background: "#132337", borderRadius: "6px" }}>
-                    <div style={{ fontSize: "13px", fontWeight: 700, color: alt.asking_price_bdt ? "#4ade80" : "#8da2b7" }}>
+                  <div style={{ padding: "10px 12px", background: "var(--ls-elevated, #10231F)", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.06)" }}>
+                    <div style={{ fontSize: "14px", fontWeight: 800, color: alt.asking_price_bdt ? "#4ade80" : "#8da2b7" }}>
                       {alt.price_formatted_bn}
                     </div>
-                    <div style={{ fontSize: "10px", color: "#8da2b7", marginTop: "2px" }}>
+                    <div style={{ fontSize: "10px", color: "var(--ls-text-secondary, #A6BDB5)", marginTop: "2px" }}>
                       {alt.price_per_shotok_formatted_bn} · <span style={{ color: "#f2c77c" }}>{alt.price_disclaimer_bn}</span>
                     </div>
                   </div>
 
                   {/* Evidence Completeness Meter */}
                   <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#8da2b7", marginBottom: "4px" }}>
-                      <span>নথিপত্র যাচাই সম্পন্নতা:</span>
-                      <strong style={{ color: "#5ee6cb" }}>{alt.evidence_completeness_pct}%</strong>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "var(--ls-text-secondary, #A6BDB5)", marginBottom: "5px" }}>
+                      <span>{lang === "bn" ? "নথিপত্র যাচাই সম্পন্নতা:" : "Evidence Completeness:"}</span>
+                      <strong style={{ color: "var(--ls-mint, #5EEAD4)" }}>{alt.evidence_completeness_pct}%</strong>
                     </div>
-                    <div style={{ width: "100%", height: "5px", background: "#1e2d3d", borderRadius: "3px", overflow: "hidden" }}>
+                    <div style={{ width: "100%", height: "6px", background: "rgba(255,255,255,0.08)", borderRadius: "3px", overflow: "hidden" }}>
                       <div
                         style={{
                           width: `${alt.evidence_completeness_pct}%`,
                           height: "100%",
                           background: alt.evidence_completeness_pct >= 75 ? "#4ade80" : alt.evidence_completeness_pct >= 50 ? "#f2c77c" : "#f87171",
+                          borderRadius: "3px",
+                          transition: "width 0.4s ease",
                         }}
                       />
                     </div>
                   </div>
 
-                  {/* Card Actions */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginTop: "4px" }}>
+                  {/* Mandatory Primary & Secondary Card Actions */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginTop: "2px" }}>
+                    {/* Primary Action: এই জমি যাচাই */}
                     <button
                       type="button"
-                      onClick={() => onSelectParcel(alt.parcel_id)}
-                      className="button primary"
-                      style={{ fontSize: "11px", padding: "6px 8px", justifyContent: "center" }}
+                      onClick={() => {
+                        if (onVerifyParcel) {
+                          onVerifyParcel(alt.parcel_id);
+                        } else {
+                          onSelectParcel(alt.parcel_id);
+                          if (onNavigateWorkflow) onNavigateWorkflow("journey");
+                        }
+                      }}
+                      className="button primary ls-spotlight-interactive"
+                      style={{
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        padding: "9px 10px",
+                        justifyContent: "center",
+                        background: "var(--ls-emerald, #0D9488)",
+                        color: "#080D0C",
+                        borderRadius: "10px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        boxShadow: "0 0 16px rgba(94, 234, 212, 0.25)",
+                        border: 0,
+                        cursor: "pointer",
+                      }}
                     >
-                      এই জমি যাচাই ➔
+                      <ShieldAlert size={14} />
+                      <span>{lang === "bn" ? "এই জমি যাচাই" : "Verify Land"}</span>
+                      <ArrowRight size={13} />
                     </button>
+
+                    {/* Secondary Action: সংরক্ষণ করুন (Watchlist Toggle) */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onToggleWatchlist) {
+                          onToggleWatchlist(alt.parcel_id);
+                        }
+                      }}
+                      className="button secondary ls-spotlight-interactive"
+                      style={{
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        padding: "9px 10px",
+                        justifyContent: "center",
+                        background: isSaved ? "rgba(94, 234, 212, 0.15)" : "var(--ls-elevated, #10231F)",
+                        border: `1px solid ${isSaved ? "var(--ls-mint, #5EEAD4)" : "rgba(255,255,255,0.12)"}`,
+                        color: isSaved ? "var(--ls-mint, #5EEAD4)" : "#F4F7F5",
+                        borderRadius: "10px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {isSaved ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
+                      <span>{isSaved ? (lang === "bn" ? "সংরক্ষিত ✓" : "Saved ✓") : (lang === "bn" ? "সংরক্ষণ করুন" : "Save")}</span>
+                    </button>
+                  </div>
+
+                  {/* Multi-parcel Comparison & Lead Action Row */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
                     <button
                       type="button"
                       onClick={() => toggleCompare(alt.parcel_id)}
@@ -730,41 +863,43 @@ export const NearbyLandAlternatives: React.FC<NearbyLandAlternativesProps> = ({
                         fontSize: "11px",
                         padding: "6px 8px",
                         justifyContent: "center",
-                        background: isComparing ? "#1b6658" : "transparent",
-                        borderColor: isComparing ? "#5ee6cb" : "#234054",
-                        color: isComparing ? "#5ee6cb" : "#96a9bc",
+                        background: isComparing ? "rgba(13, 148, 136, 0.25)" : "transparent",
+                        borderColor: isComparing ? "var(--ls-mint, #5EEAD4)" : "rgba(255,255,255,0.1)",
+                        color: isComparing ? "var(--ls-mint, #5EEAD4)" : "var(--ls-text-secondary, #A6BDB5)",
+                        borderRadius: "8px",
                       }}
                     >
-                      {isComparing ? "✓ তুলনামূলক তালিকায়" : "+ তুলনা করুন"}
+                      <Scale size={12} />
+                      <span>{isComparing ? "✓ তালিকায়" : "+ তুলনা"}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setContactModalItem(alt);
+                        setContactStatus("");
+                        setContactNote("");
+                        setReportStatus("");
+                        setIsReporting(false);
+                      }}
+                      style={{
+                        background: "transparent",
+                        border: "1px dashed rgba(255,255,255,0.15)",
+                        borderRadius: "8px",
+                        color: "var(--ls-text-secondary, #A6BDB5)",
+                        padding: "6px 8px",
+                        fontSize: "11px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <PhoneCall size={12} style={{ color: "var(--ls-mint, #5EEAD4)" }} />
+                      <span>{lang === "bn" ? "যোগাযোগ" : "Contact"}</span>
                     </button>
                   </div>
-
-                  {/* Seller Contact Trigger */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setContactModalItem(alt);
-                      setContactStatus("");
-                      setContactNote("");
-                      setReportStatus("");
-                      setIsReporting(false);
-                    }}
-                    style={{
-                      background: "transparent",
-                      border: "1px dashed #234054",
-                      borderRadius: "6px",
-                      color: "#9bb7cf",
-                      padding: "5px",
-                      fontSize: "11px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "6px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <PhoneCall size={12} style={{ color: "#5ee6cb" }} /> বিক্রেতার সাথে যোগাযোগ (ডেমো)
-                  </button>
                 </div>
               );
             })}

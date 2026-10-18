@@ -1,0 +1,55 @@
+{
+  "console_errors": [],
+  "page_errors": [],
+  "viewports": {
+    "desktop_1366": {
+      "overflow": false
+    },
+    "desktop_1920": {
+      "overflow": false
+    },
+    "tablet_768": {
+      "overflow": false
+    },
+    "mobile_390": {
+      "overflow": false
+    }
+  },
+  "sidebar_metrics": {
+    "width": 260,
+    "height": 900
+  },
+  "navbar_metrics": {
+    "width": 1180,
+    "height": 72
+  },
+  "svg_metrics": {
+    "total_svgs": 64,
+    "oversized_count": 1,
+    "oversized_details": [
+      {
+        "tag": "svg",
+        "cls": "leaflet-zoom-animated",
+        "width": 900,
+        "height": 648
+      }
+    ]
+  },
+  "spotlight_verified": true,
+  "modules_accessible": {
+    "explorer": true,
+    "saved": true,
+    "verification": true,
+    "documents": true,
+    "copilot": true,
+    "lawyers": true,
+    "passport": true,
+    "my_land": true,
+    "notifications": true
+  },
+  "light_theme_verified": true,
+  "mobile_drawer_verified": true,
+  "escape_key_closes_drawer": true,
+  "landing_page_verified": true,
+  "zero_horizontal_overflow": true
+}

@@ -25,25 +25,17 @@ import { BangladeshMap } from "./components/BangladeshMap";
 import { DocumentIntelligence } from "./components/DocumentIntelligence";
 import { BuyerJourney } from "./components/BuyerJourney";
 import { NearbyLandAlternatives } from "./components/NearbyLandAlternatives";
+import { LandingPage } from "./components/landing/LandingPage";
+import { DashboardNavbar } from "./components/dashboard/DashboardNavbar";
+import { DashboardSidebar, DASHBOARD_MODULES } from "./components/dashboard/DashboardSidebar";
+import { DashboardEntryTransition } from "./components/dashboard/DashboardEntryTransition";
+import { SavedPropertiesWorkspace } from "./components/dashboard/SavedPropertiesWorkspace";
+import { onSpotlightMove, onSpotlightLeave } from "./components/common/Spotlight";
+import { ParcelProvider } from "./context/ParcelContext";
+import type { DashboardModuleId } from "./types/dashboard";
 
-const navigation = [
-  { id: "dashboard", labelBn: "আমার জমি (ওভারভিউ)", labelEn: "My Land (Overview)", icon: LayoutDashboard },
-  { id: "explorer", labelBn: "জমি খুঁজুন (পার্সেল অনুসন্ধান)", labelEn: "Find Land (Search & Map)", icon: MapPinned },
-  { id: "verification", labelBn: "জমি যাচাই (স্মার্ট ভেরিফিকেশন)", labelEn: "Land Verification & Risk", icon: ShieldAlert },
-  { id: "documents", labelBn: "দলিল পরীক্ষা ও ওসিআর", labelEn: "Deed Review & OCR", icon: FileCheck2 },
-  { id: "copilot", labelBn: "ভূমি সহকারী (এআই সহকারী)", labelEn: "Land Assistant (AI Copilot)", icon: Bot },
-  { id: "lawyers", labelBn: "আইনজীবীর পরামর্শ (সংযোগ)", labelEn: "Lawyer Consultation", icon: Scale },
-  { id: "passport", labelBn: "যাচাই প্রতিবেদন (রিপোর্ট)", labelEn: "Verification Report", icon: FileText }
-] as const;
+type Page = DashboardModuleId;
 
-type Page =
-  | typeof navigation[number]["id"]
-  | "overview"
-  | "search"
-  | "journey"
-  | "ownership"
-  | "tax_calc"
-  | "watchlist";
 
 type Evidence = {
   source_table: string;
@@ -73,13 +65,33 @@ type ChatMessage = {
 };
 
 export default function App() {
-  const [page, setPage] = useState<Page>("dashboard");
+  const [page, setPage] = useState<Page>("explorer");
   const [lang, setLang] = useState<"bn" | "en">("bn");
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [showEntryTransition, setShowEntryTransition] = useState(false);
+
+  const [lightTheme, setLightTheme] = useState(() => {
+    try {
+      return document.documentElement.classList.contains("light") || localStorage.getItem("ls-theme") === "light";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleTheme = () => {
+    const next = !lightTheme;
+    setLightTheme(next);
+    document.documentElement.classList.toggle("light", next);
+    document.querySelector(".landsure-landing")?.classList.toggle("light", next);
+    try {
+      localStorage.setItem("ls-theme", next ? "light" : "dark");
+    } catch {}
+  };
 
   // Authentication & Persistent Session
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const isLoggingInRef = useRef(false);
 
   const [token, setToken] = useState<string>(() => {
@@ -346,7 +358,9 @@ export default function App() {
       const res = await loginUser(username.trim(), password);
       updateToken(res.token, res.user);
       setPassword("");
+      setShowLoginModal(false);
       setPage("explorer");
+      setShowEntryTransition(true);
     } catch (err) {
       setLoginError(err instanceof Error ? err.message : "Login failed");
     } finally {
@@ -354,7 +368,7 @@ export default function App() {
     }
   }
 
-  async function loginDemo() {
+  async function loginDemo(targetPage: Page = "explorer") {
     if (isLoggingInRef.current || busy) return;
     isLoggingInRef.current = true;
     setLoginError("");
@@ -365,13 +379,23 @@ export default function App() {
         setDemoStatus(statusMsg);
       });
       updateToken(res.token, res.user);
-      setPage("explorer");
+      setPage(targetPage);
+      setShowEntryTransition(true);
     } catch (err) {
       setLoginError(err instanceof Error ? err.message : "Demo authentication failed");
     } finally {
       setBusy(false);
       setDemoStatus("");
       isLoggingInRef.current = false;
+    }
+  }
+
+  async function startVerificationWorkflow() {
+    if (token && user) {
+      setPage("verification");
+      setShowEntryTransition(true);
+    } else {
+      await loginDemo("verification");
     }
   }
 
@@ -680,308 +704,347 @@ export default function App() {
 
   if (!authenticated) {
     return (
-      <div className="login-screen">
-        <div className="login-glow" />
-        <div className="login-card" style={{ maxWidth: "480px" }}>
-          {/* Top Brand Header & Language Toggle */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-            <div className="brand large" style={{ margin: 0, padding: 0 }}>
-              <div className="brand-mark"><Fingerprint size={26}/></div>
-              <div>LandSure <span>AI</span></div>
-            </div>
-            <button
-              type="button"
-              className="lang-toggle-btn"
-              onClick={() => setLang(lang === "bn" ? "en" : "bn")}
-              style={{
-                background: "#162b3c",
-                color: "#7ce3d0",
-                border: "1px solid #285461",
-                padding: "6px 12px",
-                borderRadius: "20px",
-                fontSize: "11px",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
-              {lang === "bn" ? "English" : "বাংলা"}
-            </button>
-          </div>
+      <>
+        {/* Pixel-Accurate Lovable Landing Page */}
+        <LandingPage
+          onLoginClick={() => setShowLoginModal(true)}
+          onStartDemoClick={() => loginDemo("explorer")}
+          onStartVerificationClick={startVerificationWorkflow}
+          onOpenParcelExplorer={() => loginDemo("explorer")}
+        />
 
-          <div className="login-icon"><Sparkles size={25}/></div>
-          <h1 style={{ fontSize: "24px", lineHeight: "1.3", marginBottom: "10px" }}>
-            {lang === "bn" ? "জমি যাচাই প্ল্যাটফর্মে স্বাগতম" : "Welcome to LandSure AI"}
-          </h1>
-          <p style={{ fontSize: "13px", color: "#90a9bc", lineHeight: "1.7", marginBottom: "24px" }}>
-            {lang === "bn"
-              ? "বাংলাদেশের জমি ক্রয়ের পূর্বে সিএস, এসএ, আরএস খতিয়ান, নামজারি ও মালিকানা স্বত্ব যাচাইয়ের নির্ভরযোগ্য এআই প্ল্যাটফর্ম।"
-              : "Evidence-linked pre-purchase land verification and cross-survey title examination for Bangladesh."}
-          </p>
-
-          {/* Error Message with Bengali Guidance */}
-          {loginError && (
-            <div className="error" style={{ marginBottom: "18px", padding: "12px 14px", borderRadius: "10px", background: "#39181c", border: "1px solid #842e39", color: "#fca5a5", fontSize: "12px", lineHeight: "1.6" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 700, marginBottom: "4px" }}>
-                <CircleAlert size={16}/>
-                <span>{lang === "bn" ? "সার্ভার সংযোগ সতর্কতা" : "Connection Notice"}</span>
-              </div>
-              <div>{loginError}</div>
-              <div style={{ marginTop: "8px", fontSize: "11px", color: "#fecaca" }}>
-                {lang === "bn"
-                  ? "পরামর্শ: ব্যাকএন্ড সার্ভার চালু হতে কয়েক সেকেন্ড সময় লাগতে পারে। অনুগ্রহ করে নিচে আবার ক্লিক করে চেষ্টা করুন।"
-                  : "Tip: Backend server might be starting up. Please click below to retry."}
-              </div>
-            </div>
-          )}
-
-          {/* Primary Action: One-Click Demo Entry ("জমি যাচাই শুরু করুন") */}
-          <button
-            type="button"
-            className="demo-btn primary-demo"
-            disabled={busy}
-            onClick={loginDemo}
+        {/* Global Demo Initializing Overlay */}
+        {busy && demoStatus && (
+          <div
             style={{
-              background: "linear-gradient(135deg, #26cba8, #0ea387)",
-              color: "#051f1c",
-              border: 0,
-              borderRadius: "11px",
-              padding: "16px 20px",
-              fontWeight: 800,
+              position: "fixed",
+              bottom: "24px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 9999,
+              background: "oklch(20.5% 0.01 180)",
+              border: "1px solid oklch(81% 0.125 182 / 0.5)",
+              boxShadow: "0 10px 40px rgba(0,0,0,0.6), 0 0 25px oklch(81% 0.125 182 / 0.35)",
+              color: "#e2e8f0",
+              padding: "14px 24px",
+              borderRadius: "16px",
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
               fontSize: "14px",
+              fontWeight: 600,
+            }}
+          >
+            <Sparkles className="animate-spin text-primary" size={18} style={{ color: "oklch(81% 0.125 182)" }} />
+            <span>{demoStatus}</span>
+          </div>
+        )}
+
+        {/* Staff/Admin Sign-In Modal */}
+        {showLoginModal && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgba(0, 0, 0, 0.75)",
+              backdropFilter: "blur(10px)",
+              zIndex: 9999,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: "10px",
-              width: "100%",
-              boxShadow: "0 6px 25px rgba(38, 203, 168, 0.35)",
-              cursor: busy ? "not-allowed" : "pointer",
-              transition: "transform 0.15s ease",
+              padding: "1rem",
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowLoginModal(false);
             }}
           >
-            <Sparkles size={18}/>
-            <span>
-              {busy && demoStatus
-                ? demoStatus
-                : (lang === "bn" ? "জমি যাচাই শুরু করুন (এক-ক্লিক ডেমো প্রবেশ) ➔" : "Start Land Verification (One-Click Demo) ➔")}
-            </span>
-          </button>
-
-          {/* Clear Guest Value Badges */}
-          <div style={{ display: "flex", justifyContent: "center", gap: "14px", marginTop: "16px", fontSize: "11px", color: "#8da2b7", flexWrap: "wrap" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-              <CheckCircle2 size={13} style={{ color: "#5ee6cb" }}/>
-              {lang === "bn" ? "পাসওয়ার্ড বা ওটিপি ছাড়া প্রবেশ" : "No password or OTP"}
-            </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-              <ShieldCheck size={13} style={{ color: "#5ee6cb" }}/>
-              {lang === "bn" ? "সুরক্ষিত স্যান্ডবক্স" : "Protected Sandbox"}
-            </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-              <Database size={13} style={{ color: "#5ee6cb" }}/>
-              {lang === "bn" ? "৭০০টি প্রদর্শনী পার্সেল" : "700 Parcels"}
-            </span>
-          </div>
-
-          {/* Secondary Collapsible Staff Login */}
-          <details style={{ marginTop: "24px", borderTop: "1px solid #1f3347", paddingTop: "14px" }}>
-            <summary style={{ cursor: "pointer", fontSize: "11px", color: "#627d92", textAlign: "center", userSelect: "none" }}>
-              {lang === "bn" ? "অ্যাডমিন বা কর্মকর্তা লগইন (পাসওয়ার্ডসহ)" : "Staff / Admin Sign In (with password)"}
-            </summary>
-            <form onSubmit={login} style={{ marginTop: "14px" }}>
-              <label style={{ fontSize: "11px", color: "#90a9bc", display: "block", marginBottom: "4px" }}>
-                {lang === "bn" ? "ব্যবহারকারীর নাম" : "Username"}
-              </label>
-              <input
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-                placeholder="admin or reviewer"
-                style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", background: "#0d1724", border: "1px solid #23374d", color: "#e7eef8", fontSize: "13px", marginBottom: "10px" }}
-              />
-              <label style={{ fontSize: "11px", color: "#90a9bc", display: "block", marginBottom: "4px" }}>
-                {lang === "bn" ? "পাসওয়ার্ড" : "Password"}
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="Enter password"
-                style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", background: "#0d1724", border: "1px solid #23374d", color: "#e7eef8", fontSize: "13px", marginBottom: "14px" }}
-              />
-              <button
-                type="submit"
-                className="secondary full"
-                disabled={busy}
+            <div
+              style={{
+                width: "100%",
+                maxWidth: "420px",
+                background: "oklch(20.5% 0.01 180)",
+                border: "1px solid oklch(30% 0.015 180 / 0.45)",
+                borderRadius: "1.25rem",
+                padding: "2rem",
+                boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.7)",
+                color: "#e2e8f0",
+              }}
+            >
+              <div
                 style={{
-                  width: "100%",
-                  padding: "10px",
-                  borderRadius: "8px",
-                  background: "#182a3c",
-                  color: "#9fc1d8",
-                  border: "1px solid #284763",
-                  fontWeight: 700,
-                  fontSize: "12px",
-                  cursor: busy ? "not-allowed" : "pointer",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "1.25rem",
                 }}
               >
-                {busy ? (lang === "bn" ? "যাচাই হচ্ছে..." : "Signing in...") : (lang === "bn" ? "সাইন ইন করুন" : "Sign in")}
-              </button>
-            </form>
-          </details>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                  <div
+                    style={{
+                      padding: "0.45rem",
+                      borderRadius: "0.5rem",
+                      background: "rgba(94, 230, 203, 0.15)",
+                      color: "oklch(81% 0.125 182)",
+                    }}
+                  >
+                    <LockKeyhole size={20} />
+                  </div>
+                  <div>
+                    <h3
+                      style={{
+                        margin: 0,
+                        fontSize: "1.15rem",
+                        fontWeight: 700,
+                        color: "#f8fafc",
+                      }}
+                    >
+                      কর্মকর্তা ও অ্যাডমিন লগইন
+                    </h3>
+                    <p style={{ margin: 0, fontSize: "0.8rem", color: "#94a3b8" }}>
+                      Staff / Admin Sign In
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowLoginModal(false)}
+                  style={{
+                    background: "transparent",
+                    border: 0,
+                    color: "#94a3b8",
+                    cursor: "pointer",
+                    padding: "0.25rem",
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
 
-          <div className="login-footer" style={{ marginTop: "20px" }}>
-            <ShieldCheck size={14}/> JWT-secured · 700 Synthetic Parcels · Read-Only Sandbox
+              {loginError && (
+                <div
+                  style={{
+                    marginBottom: "1rem",
+                    padding: "0.75rem 1rem",
+                    borderRadius: "0.5rem",
+                    background: "rgba(239, 68, 68, 0.15)",
+                    border: "1px solid rgba(239, 68, 68, 0.3)",
+                    color: "#fca5a5",
+                    fontSize: "0.85rem",
+                  }}
+                >
+                  {loginError}
+                </div>
+              )}
+
+              <form onSubmit={login}>
+                <div style={{ marginBottom: "1rem" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8rem",
+                      color: "#cbd5e1",
+                      marginBottom: "0.35rem",
+                    }}
+                  >
+                    ব্যবহারকারীর নাম (Username)
+                  </label>
+                  <input
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="admin or reviewer"
+                    autoFocus
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem 1rem",
+                      borderRadius: "0.5rem",
+                      background: "oklch(16.5% 0.007 175)",
+                      border: "1px solid oklch(30% 0.015 180 / 0.45)",
+                      color: "#f8fafc",
+                      fontSize: "0.9rem",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: "1.25rem" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.8rem",
+                      color: "#cbd5e1",
+                      marginBottom: "0.35rem",
+                    }}
+                  >
+                    পাসওয়ার্ড (Password)
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="পাসওয়ার্ড লিখুন"
+                    style={{
+                      width: "100%",
+                      padding: "0.75rem 1rem",
+                      borderRadius: "0.5rem",
+                      background: "oklch(16.5% 0.007 175)",
+                      border: "1px solid oklch(30% 0.015 180 / 0.45)",
+                      color: "#f8fafc",
+                      fontSize: "0.9rem",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={busy}
+                  style={{
+                    width: "100%",
+                    padding: "0.8rem",
+                    borderRadius: "0.5rem",
+                    background: "oklch(81% 0.125 182)",
+                    color: "oklch(17% 0.02 185)",
+                    fontWeight: 700,
+                    fontSize: "0.95rem",
+                    border: 0,
+                    cursor: busy ? "not-allowed" : "pointer",
+                    boxShadow: "0 0 20px rgba(94, 230, 203, 0.3)",
+                  }}
+                >
+                  {busy ? "যাচাই হচ্ছে..." : "সাইন ইন করুন"}
+                </button>
+              </form>
+
+              <div
+                style={{
+                  marginTop: "1.25rem",
+                  textAlign: "center",
+                  borderTop: "1px solid oklch(30% 0.015 180 / 0.45)",
+                  paddingTop: "1rem",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowLoginModal(false);
+                    loginDemo("explorer");
+                  }}
+                  style={{
+                    background: "transparent",
+                    border: 0,
+                    color: "oklch(81% 0.125 182)",
+                    fontSize: "0.85rem",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                  }}
+                >
+                  অথবা সরাসরি ফ্রি ডেমো শুরু করুন ➔
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        )}
+      </>
     );
   }
 
-  const activeNavItem = navigation.find(n => n.id === page);
+  const activeNavItem =
+    DASHBOARD_MODULES.find((m) => m.id === page) ||
+    (page === "journey" ? DASHBOARD_MODULES.find((m) => m.id === "verification") : null) ||
+    (page === "overview" || page === "dashboard" ? DASHBOARD_MODULES.find((m) => m.id === "my_land") : null) ||
+    (page === "watchlist" ? DASHBOARD_MODULES.find((m) => m.id === "notifications") : null) ||
+    (page === "search" ? DASHBOARD_MODULES.find((m) => m.id === "explorer") : null) ||
+    DASHBOARD_MODULES[0];
 
   return (
-    <div className="app-shell">
-      {/* Sidebar Navigation */}
-      <aside className={`sidebar ${mobileMenu ? "open" : ""}`}>
-        <div className="brand">
-          <div className="brand-mark"><Fingerprint size={24}/></div>
-          <div>LandSure <span>AI</span><small>LAND INTELLIGENCE</small></div>
-        </div>
+    <ParcelProvider token={token} username={user?.username || "demo"}>
+      {/* 0. Dashboard Entry Branded Transition */}
+      <DashboardEntryTransition
+        show={showEntryTransition}
+        onComplete={() => setShowEntryTransition(false)}
+        targetModuleName={lang === "bn" ? activeNavItem.labelBn : activeNavItem.labelEn}
+      />
 
-        <div className="workspace-label">{lang === "bn" ? "মূল নেভিগেশন" : "WORKSPACE MODULES"}</div>
-        <nav>
-          {navigation.map(item => {
-            const Icon = item.icon;
-            const active = page === item.id;
-            return (
-              <button
-                key={item.id}
-                className={`nav-item ${active ? "active" : ""}`}
-                onClick={() => { setPage(item.id); setMobileMenu(false); }}
-              >
-                <Icon size={18}/>
-                <span>{lang === "bn" ? item.labelBn : item.labelEn}</span>
-                {active && <ChevronRight size={14} className="nav-arrow"/>}
-              </button>
-            );
-          })}
-        </nav>
+      <div className="app-shell min-h-screen flex bg-background text-foreground landsure-dashboard">
+        {/* 1. Primary Left Navigation Sidebar */}
+        <DashboardSidebar
+          currentModule={page}
+          onSelectModule={(m) => setPage(m)}
+          lang={lang}
+          mobileOpen={mobileMenu}
+          onCloseMobile={() => setMobileMenu(false)}
+          user={user}
+          onLogout={logout}
+          savedCount={watchlist.length}
+          notificationCount={watchlist.length}
+        />
 
-        <div className="sidebar-bottom">
-          <div className="sidebar-tip">
-            <ShieldCheck size={20}/>
-            <strong>{lang === "bn" ? "প্রমাণভিত্তিক যাচাই" : "Evidence First"}</strong>
-            <span>{lang === "bn" ? "সিএস, এসএ, আরএস ও বিএস রেকর্ডের সমন্বিত যাচাই।" : "Transparent cross-survey and mutation evidence."}</span>
-          </div>
-          <div className="profile">
-            <div className="avatar">{user?.username.slice(0, 2).toUpperCase() || "LS"}</div>
-            <div className="profile-name">
-              <strong>{user?.username || "Workspace User"}</strong>
-              <span>{user?.role === "demo" ? "ডেমো সেশন (Demo Mode)" : `${user?.role} access`}</span>
-            </div>
-            <button title="Log out" className="icon-button" onClick={logout}><LogOut size={16}/></button>
-          </div>
-        </div>
-      </aside>
+        {/* 2. Main Content Area */}
+        <main className="main-content flex-1 min-w-0 flex flex-col bg-background">
+          {/* Top Navigation — Mandatory Premium Glassmorphism Navbar with Continuously Animated Logo */}
+          <DashboardNavbar
+            moduleTitleBn={activeNavItem.labelBn}
+            moduleTitleEn={activeNavItem.labelEn}
+            currentModuleId={activeNavItem.id}
+            lang={lang}
+            onToggleLang={() => setLang((l) => (l === "bn" ? "en" : "bn"))}
+            lightTheme={lightTheme}
+            onToggleTheme={toggleTheme}
+            user={user}
+            onLogout={logout}
+            onOpenMobileMenu={() => setMobileMenu(true)}
+            onNavigate={(m) => setPage(m)}
+            notificationCount={watchlist.length}
+            parcelId={parcelId}
+            parcelName={String(parcelDetails?.display_name_bn || parcelDetails?.display_name_en || "")}
+          />
 
-      {mobileMenu && (
-        <button className="mobile-overlay" aria-label="Close navigation" onClick={() => setMobileMenu(false)} />
-      )}
+          <div className="page-content">
+            {error && <div className="error">{error}</div>}
 
-      {/* Main Content Area */}
-      <main className="main-content">
-        <header className="topbar">
-          <button className="mobile-menu icon-button" onClick={() => setMobileMenu(true)} aria-label="Open navigation"><Menu size={22}/></button>
-          <div className="breadcrumb">
-            <span>LandSure AI</span> <ChevronRight size={14}/>
-            <strong>{lang === "bn" ? activeNavItem?.labelBn : activeNavItem?.labelEn}</strong>
-          </div>
-          <div className="topbar-right">
-            {/* Active Selected Parcel Badge */}
-            <button
-              onClick={() => navigateTo("search")}
-              title={lang === "bn" ? "পার্সেল পরিবর্তন করতে ক্লিক করুন" : "Click to select a different parcel"}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "7px",
-                background: "#0c1b2c",
-                border: "1px solid #1c3b57",
-                borderRadius: "20px",
-                padding: "6px 12px",
-                color: "#5ee6cb",
-                cursor: "pointer",
-                fontSize: "12px",
-                fontWeight: 600
-              }}
-            >
-              <MapPinned size={14}/>
-              <span>{parcelId}</span>
-              <span style={{ color: "#7189a0", fontWeight: 400 }}>|</span>
-              <span style={{ color: "#d2e3f5", maxWidth: "160px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 400 }}>
-                {String(parcelDetails?.display_name_bn || parcelDetails?.display_name_en || (lang === "bn" ? "বিরুলিয়া আবাসিক জমি" : "Birulia Residential"))}
-              </span>
-            </button>
+            {/* MODULE 2: SAVED PROPERTIES WORKSPACE */}
+            {page === "saved" && (
+              <SavedPropertiesWorkspace
+                savedIds={watchlist}
+                selectedParcelId={parcelId}
+                onSelectParcel={(id) => {
+                  setParcelId(id);
+                  try {
+                    localStorage.setItem("landsure_selected_parcel_id", id);
+                  } catch {}
+                  apiRequest<{ parcel?: Record<string, unknown> }>(`/api/v1/parcels/${encodeURIComponent(id)}`, { token })
+                    .then((d) => setParcelDetails(d.parcel ?? d))
+                    .catch(() => null);
+                }}
+                onStartVerification={(id) => {
+                  setParcelId(id);
+                  try {
+                    localStorage.setItem("landsure_selected_parcel_id", id);
+                  } catch {}
+                  apiRequest<{ parcel?: Record<string, unknown> }>(`/api/v1/parcels/${encodeURIComponent(id)}`, { token })
+                    .then((d) => setParcelDetails(d.parcel ?? d))
+                    .catch(() => null);
+                  setPage("verification");
+                }}
+                onViewOnMap={(id) => {
+                  setParcelId(id);
+                  try {
+                    localStorage.setItem("landsure_selected_parcel_id", id);
+                  } catch {}
+                  setPage("explorer");
+                }}
+                onRemoveSaved={(id) => toggleWatchlist(id)}
+                token={token}
+                lang={lang}
+              />
+            )}
 
-            {/* Watchlist & Change Watch Notification Bell */}
-            <button
-              onClick={() => setPage("watchlist")}
-              title={lang === "bn" ? "পার্সেল ওয়াচলিস্ট ও সাম্প্রতিক পরিবর্তন দেখুন" : "View parcel watchlist and recent changes"}
-              style={{
-                position: "relative",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: page === "watchlist" ? "#1b4d43" : "#0c1b2c",
-                border: "1px solid #1c3b57",
-                borderRadius: "50%",
-                width: "36px",
-                height: "36px",
-                color: page === "watchlist" ? "#5ee6cb" : "#8da2b7",
-                cursor: "pointer",
-              }}
-            >
-              <Bell size={16}/>
-              {watchlist.length > 0 && (
-                <span className="bell-badge" style={{
-                  position: "absolute",
-                  top: "-2px",
-                  right: "-2px",
-                  background: "#ff5252",
-                  color: "#fff",
-                  fontSize: "9px",
-                  fontWeight: 700,
-                  borderRadius: "10px",
-                  padding: "1px 5px",
-                  border: "1px solid #0c1827"
-                }}>
-                  {watchlist.length}
-                </span>
-              )}
-            </button>
-
-            {/* Language Switcher */}
-            <button
-              className="lang-toggle"
-              onClick={() => setLang(l => (l === "bn" ? "en" : "bn"))}
-              title="Toggle Language"
-            >
-              🌐 {lang === "bn" ? "English" : "বাংলা"}
-            </button>
-            <span className={`environment ${user?.role === "demo" ? "demo" : ""}`}>
-              <span className="status-dot"/>
-              {user?.role === "demo" ? "ডেমো মোড (700 Parcels)" : "Live API"}
-            </span>
-            <div className="top-avatar">{user?.username.slice(0, 2).toUpperCase() || "LS"}</div>
-          </div>
-        </header>
-
-        <div className="page-content">
-          {error && <div className="error">{error}</div>}
-
-          {/* 1. OVERVIEW & PARCEL WORKSPACE (STEP 3) */}
-          {(page === "dashboard" || page === "overview") && (
-            <>
-              <div className="eyebrow"><ShieldCheck size={15}/> {lang === "bn" ? "ধাপ ৩ — সহজ জমি ওভারভিউ" : "STEP 3 — LAND OVERVIEW"}</div>
+            {/* 1. OVERVIEW & PARCEL WORKSPACE (STEP 3 / MY LAND) */}
+            {(page === "dashboard" || page === "overview" || page === "my_land") && (
+              <>
+                <div className="eyebrow"><ShieldCheck size={15}/> {lang === "bn" ? "ধাপ ৩ — সহজ জমি ওভারভিউ" : "STEP 3 — LAND OVERVIEW"}</div>
               
               <div className="page-heading" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
                 <div>
@@ -996,19 +1059,32 @@ export default function App() {
                   </p>
                 </div>
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                  <button className="primary" onClick={() => navigateTo("journey")}>
+                  <button
+                    className="primary ls-spotlight-interactive"
+                    onClick={() => navigateTo("journey")}
+                    onPointerMove={(e) => onSpotlightMove(e, "1")}
+                    onPointerLeave={onSpotlightLeave}
+                  >
                     {lang === "bn" ? "জমি যাচাই শুরু করুন" : "Start Full Verification"} <ArrowRight size={15}/>
                   </button>
-                  <button className="secondary" onClick={() => navigateTo("search")} style={{ background: "#16283b", border: "1px solid #28445f", color: "#e7eef8", padding: "9px 15px", borderRadius: "8px", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
+                  <button
+                    className="secondary ls-spotlight-interactive"
+                    onClick={() => navigateTo("search")}
+                    onPointerMove={(e) => onSpotlightMove(e, "1")}
+                    onPointerLeave={onSpotlightLeave}
+                    style={{ background: "var(--ls-elevated, #10231F)", border: "1px solid var(--border)", color: "#e7eef8", padding: "9px 15px", borderRadius: "8px", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}
+                  >
                     <MapPinned size={15}/> {lang === "bn" ? "মানচিত্রে দেখুন" : "View on Map"}
                   </button>
                   <button
-                    className="secondary"
+                    className="secondary ls-spotlight-interactive"
                     onClick={() => toggleWatchlist(parcelId)}
+                    onPointerMove={(e) => onSpotlightMove(e, "1")}
+                    onPointerLeave={onSpotlightLeave}
                     title={watchlist.includes(parcelId) ? "Remove from watchlist" : "Add to watchlist"}
                     style={{
-                      background: watchlist.includes(parcelId) ? "#123d33" : "#16283b",
-                      border: watchlist.includes(parcelId) ? "1px solid #1c6d5b" : "1px solid #28445f",
+                      background: watchlist.includes(parcelId) ? "#123d33" : "var(--ls-elevated, #10231F)",
+                      border: watchlist.includes(parcelId) ? "1px solid #1c6d5b" : "1px solid var(--border)",
                       color: watchlist.includes(parcelId) ? "#5ee6cb" : "#e7eef8",
                       padding: "9px 15px",
                       borderRadius: "8px",
@@ -1164,7 +1240,13 @@ export default function App() {
                 ].map(act => {
                   const Icon = act.icon;
                   return (
-                    <button className="action-card" key={act.title} onClick={() => navigateTo(act.target)}>
+                    <button
+                      className="action-card ls-spotlight-interactive"
+                      key={act.title}
+                      onClick={() => navigateTo(act.target)}
+                      onPointerMove={(e) => onSpotlightMove(e, "1")}
+                      onPointerLeave={onSpotlightLeave}
+                    >
                       <div className="action-icon"><Icon size={22}/></div>
                       <strong>{act.title}</strong>
                       <p>{act.desc}</p>
@@ -1175,7 +1257,7 @@ export default function App() {
               </div>
 
               {/* Compact "তথ্যের উৎস ও সীমাবদ্ধতা" section */}
-              <div className="panel" style={{ marginTop: "24px", background: "rgba(10, 25, 41, 0.7)", border: "1px solid #1a334d" }}>
+              <div className="panel" style={{ marginTop: "24px", background: "var(--ls-surface, #0B1513)", border: "1px solid var(--border)" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
                   <CircleHelp size={18} color="#5ee6cb" style={{ marginTop: "2px", flexShrink: 0 }}/>
                   <div style={{ fontSize: "12px", color: "#8da2b7", lineHeight: "1.7" }}>
@@ -1235,7 +1317,7 @@ export default function App() {
 
                   <div className="panel">
                     <div className="panel-title"><Globe2 size={18}/> {lang === "bn" ? "মৌজা ম্যাপ ও সীমানা ভিজ্যুয়ালাইজেশন" : "Mouza Boundary Visualization"}</div>
-                    <div style={{ background: "#06101c", padding: "20px", borderRadius: "10px", textAlign: "center", border: "1px solid #1a3044" }}>
+                    <div style={{ background: "var(--ls-surface, #0B1513)", padding: "20px", borderRadius: "10px", textAlign: "center", border: "1px solid var(--border)" }}>
                       <svg width="220" height="150" viewBox="0 0 220 150">
                         <polygon points="40,25 180,35 195,120 30,130" fill="#123d33" stroke="#5ee6cb" strokeWidth="2"/>
                         <line x1="15" y1="140" x2="205" y2="135" stroke="#f2c77c" strokeWidth="3" strokeDasharray="5,5"/>
@@ -1258,6 +1340,13 @@ export default function App() {
                 currentParcelId={parcelId}
                 onSelectParcel={(newId) => selectParcel(newId)}
                 onNavigateWorkflow={(target) => navigateTo(target)}
+                onVerifyParcel={(newId) => {
+                  selectParcel(newId);
+                  setPage("verification");
+                  setShowEntryTransition(true);
+                }}
+                watchlist={watchlist}
+                onToggleWatchlist={(id) => toggleWatchlist(id)}
               />
             </>
           )}
@@ -1283,6 +1372,7 @@ export default function App() {
                 parcelId={parcelId}
                 token={token}
                 lang={lang}
+                parcelDetails={parcelDetails}
                 onNavigateWorkflow={(target) => navigateTo(target)}
                 onSetCalculatorValues={(val, area) => {
                   setCalcDeedValue(val);
@@ -1780,7 +1870,7 @@ export default function App() {
               <div className="page-heading">
                 <div>
                   <h1>{lang === "bn" ? "বিজ্ঞ আইনজীবী" : "Legal Expert"} <span>{lang === "bn" ? "সংযোগ ও পরামর্শ" : "Directory."}</span></h1>
-                  <p>{lang === "bn" ? "৫০ জন সিন্থেটিক জমি বিশেষজ্ঞ বিজ্ঞ আইনজীবীর প্রোফাইল ও স্লট সূচি।" : "Browse 50 verified legal counsel profiles with appointment availability."}</p>
+                  <p>{lang === "bn" ? "৫০ জন সিন্থেটিক জমি বিশেষজ্ঞ বিজ্ঞ আইনজীবীর প্রোফাইল ও স্লট সূচি (প্রদর্শনী ডেমো ডিরেক্টরি)।" : "Browse 50 verified legal counsel profiles with appointment availability (Demonstration Directory)."}</p>
                 </div>
               </div>
 
@@ -1923,7 +2013,7 @@ export default function App() {
           )}
 
           {/* 9. WATCHLIST & CHANGE MONITOR */}
-          {page === "watchlist" && (
+          {(page === "watchlist" || page === "notifications") && (
             <>
               <div className="eyebrow"><Bell size={15}/> PARCEL CHANGE WATCH</div>
               <div className="page-heading">
@@ -2128,5 +2218,7 @@ export default function App() {
         </div>
       </main>
     </div>
+    </ParcelProvider>
   );
 }
+

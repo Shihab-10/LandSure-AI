@@ -104,7 +104,7 @@ def test_browser_district_and_parcel_search_with_disclaimer():
         page.wait_for_selector(".gis-map-module", timeout=10000)
 
         # 1. District selection
-        select_elem = page.locator("select")
+        select_elem = page.locator("select").first
         options = select_elem.locator("option").all_inner_texts()
         # Option 0 is default "-- ৬৪ জেলা বাছাই করুন --", remaining 64 are districts
         assert len(options) >= 65, f"Expected 64 districts + 1 default option, found {len(options)}"

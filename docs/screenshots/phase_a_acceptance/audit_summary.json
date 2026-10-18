@@ -1,0 +1,105 @@
+{
+  "console_errors": [],
+  "page_errors": [],
+  "step_results": {
+    "Step 1: Landing Page Load": {
+      "success": true,
+      "details": {
+        "hero_demo_btn": true,
+        "hero_verify_btn": true
+      }
+    },
+    "Step 2: Demo View lands on Module 1 (জমি খুঁজুন)": {
+      "success": true,
+      "details": {
+        "sidebar_active": "জমি খুঁজুনমানচিত্র ও পার্সেল ব্রাউজার",
+        "breadcrumb": "LandSure AIজমি খুঁজুন",
+        "parcel_badge": "LS-PARCEL-000001|বিরুলিয়া নাল জমি"
+      }
+    },
+    "Step 3: Module (সংরক্ষিত জমি)": {
+      "success": true,
+      "details": {
+        "shot": "04_saved_properties.png"
+      }
+    },
+    "Step 3: Module (জমি যাচাইকরণ)": {
+      "success": true,
+      "details": {
+        "shot": "05_verification_journey.png"
+      }
+    },
+    "Step 3: Module (দলিল পরীক্ষা)": {
+      "success": true,
+      "details": {
+        "shot": "06_documents_ocr.png"
+      }
+    },
+    "Step 3: Module (ভূমি সহকারী)": {
+      "success": true,
+      "details": {
+        "shot": "07_land_copilot.png"
+      }
+    },
+    "Step 3: Module (আইনজীবীর পরামর্শ)": {
+      "success": true,
+      "details": {
+        "shot": "08_lawyers_consultation.png"
+      }
+    },
+    "Step 3: Module (যাচাই প্রতিবেদন)": {
+      "success": true,
+      "details": {
+        "shot": "09_trust_passport.png"
+      }
+    },
+    "Step 3: Module (আমার জমি)": {
+      "success": true,
+      "details": {
+        "shot": "10_my_land_overview.png"
+      }
+    },
+    "Step 3: Module (নোটিফিকেশন)": {
+      "success": true,
+      "details": {
+        "shot": "11_notifications_watchlist.png"
+      }
+    },
+    "Step 4: Parcel Context Pill Returns to Explorer": {
+      "success": true,
+      "details": {
+        "sidebar": "জমি খুঁজুনমানচিত্র ও পার্সেল ব্রাউজার"
+      }
+    },
+    "Step 5a: Theme Toggle to Light Mode": {
+      "success": true,
+      "details": {
+        "html_class": "light"
+      }
+    },
+    "Step 5b: Language Toggle to English": {
+      "success": true,
+      "details": {
+        "has_en": true
+      }
+    },
+    "Step 6: 'জমি যাচাই শুরু করুন' Direct Verification Entry": {
+      "success": true,
+      "details": {
+        "sidebar": "জমি যাচাইকরণ৯-ধাপের স্মার্ট অডিট"
+      }
+    },
+    "Step 7a: Tablet 768x1024 Layout": {
+      "success": true,
+      "details": {
+        "hamburger_visible": true
+      }
+    },
+    "Step 7b: Mobile 375x812 Layout & Drawer": {
+      "success": true,
+      "details": {
+        "drawer_visible": true
+      }
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "console_errors": [],
+  "page_errors": [],
+  "viewports_tested": {
+    "desktop_1366": {
+      "scrollWidth": 1366,
+      "innerWidth": 1366,
+      "hasOverflow": false
+    },
+    "desktop_1920": {
+      "scrollWidth": 1920,
+      "innerWidth": 1920,
+      "hasOverflow": false
+    },
+    "tablet_768": {
+      "scrollWidth": 768,
+      "innerWidth": 768,
+      "hasOverflow": false
+    },
+    "mobile_390": {
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "hasOverflow": false
+    }
+  },
+  "svg_checks": {
+    "oversized_icons_found": 0,
+    "details": []
+  },
+  "layout_checks": {
+    "desktop_1440": {
+      "sidebarWidth": 250,
+      "sidebarVisible": true,
+      "navbarHeight": 74,
+      "mainWidth": 1190,
+      "windowInnerWidth": 1440,
+      "documentScrollWidth": 1440,
+      "hasHorizontalScroll": false
+    },
+    "mobile_drawer_opened": true,
+    "verification_entry_heading": "জমি যাচাই ও ক্রয় পূর্ব সতর্কতা"
+  }
+}

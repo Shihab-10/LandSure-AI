@@ -55,7 +55,7 @@ def test_phase4c_fresh_guest_login_and_parcel_search():
 
         # Verify Welcome Screen elements
         assert page.locator(".login-card").is_visible(), "Welcome Card should be displayed"
-        assert page.locator("text=জমি যাচাই প্ল্যাটফর্মে স্বাগতম").is_visible() or page.locator("text=Welcome").is_visible()
+        assert page.locator("text=জমি কেনার আগে").first.is_visible() or page.locator("text=জমি যাচাই প্ল্যাটফর্মে স্বাগতম").first.is_visible() or page.locator("text=Welcome").first.is_visible()
 
         # Click the primary One-Click Demo button
         demo_btn = page.locator("button.demo-btn")
@@ -121,13 +121,13 @@ def test_phase4c_navigation_through_all_primary_menus():
             page.wait_for_selector(".app-shell", timeout=10000)
 
         menus = [
-            ("আমার জমি", ".grid-2col"),
+            ("সংরক্ষিত জমি" if page.locator("aside.sidebar nav button:has-text('সংরক্ষিত জমি')").count() > 0 else "আমার জমি", ".saved-properties-grid, .grid-2col, .page-heading"),
             ("জমি খুঁজুন", ".gis-map-module"),
             ("জমি যাচাই", ".buyer-journey-workspace"),
             ("দলিল পরীক্ষা", ".doc-intel-module"),
             ("ভূমি সহকারী", ".chat-layout"),
             ("আইনজীবীর পরামর্শ", ".lawyer-card"),
-            ("যাচাই প্রতিবেদন", ".page-heading"),
+            ("পাসপোর্ট" if page.locator("aside.sidebar nav button:has-text('পাসপোর্ট')").count() > 0 else "যাচাই প্রতিবেদন", ".passport-preview, .page-heading"),
         ]
 
         for menu_name, target_selector in menus:
