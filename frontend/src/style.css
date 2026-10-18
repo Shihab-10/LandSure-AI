@@ -507,9 +507,8 @@ input::placeholder { color: var(--muted-foreground); }
 .full { width: 100%; margin-top: 24px; }
 .login-divider { display: flex; align-items: center; text-align: center; margin: 18px 0 12px; color: var(--muted-foreground); font-size: 11px; }
 .login-divider::before, .login-divider::after { content: ''; flex: 1; border-bottom: 1px solid var(--border); }
-.login-divider span { padding: 0 10px; letter-spacing: 0.5px; }
-.demo-btn { background: #142d38; color: #64e9ce; border: 1px solid #23585d; border-radius: 9px; padding: 13px 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: all 0.2s ease; width: 100%; }
-.demo-btn:hover:not(:disabled) { background: #193f48; border-color: #388d8b; color: #a4f7e5; }
+.demo-btn:not(.hero-cta-btn-secondary) { background: #142d38; color: #64e9ce; border: 1px solid #23585d; border-radius: 9px; padding: 13px 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: all 0.2s ease; width: 100%; }
+.demo-btn:not(.hero-cta-btn-secondary):hover:not(:disabled) { background: #193f48; border-color: #388d8b; color: #a4f7e5; }
 .demo-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .login-footer { display: flex; justify-content: center; gap: 8px; align-items: center; color: #7599a4; font-size: 10px; margin-top: 23px; }
 .mobile-menu, .mobile-overlay { display: none; }

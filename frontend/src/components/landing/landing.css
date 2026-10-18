@@ -1133,6 +1133,24 @@ section#faq {
 }
 
 /* Hero CTA Buttons - Proportional & Premium */
+.hero-cta-group {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+  width: 100% !important;
+  margin-top: 2rem !important;
+}
+
+@media (min-width: 640px) {
+  .hero-cta-group {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 1rem !important;
+    width: auto !important;
+  }
+}
+
 .hero-cta-btn-primary {
   display: inline-flex;
   align-items: center;
@@ -1177,7 +1195,7 @@ section#faq {
   justify-content: center;
   gap: 0.65rem;
   height: 3.25rem;
-  padding: 0 1.75rem;
+  padding: 0 1.65rem;
   border-radius: 0.875rem;
   background: rgba(16, 35, 31, 0.85);
   color: #F4F7F5 !important;
@@ -1186,36 +1204,59 @@ section#faq {
   border: 1px solid rgba(94, 234, 212, 0.35);
   backdrop-filter: blur(12px);
   transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
-  min-width: 10.5rem;
+  width: auto !important;
+  max-width: max-content !important;
+  min-width: 0 !important;
+  flex: 0 0 auto !important;
+  white-space: nowrap;
   text-decoration: none;
   cursor: pointer;
 }
 
-.hero-cta-btn-secondary:hover {
-  background: rgba(20, 48, 42, 0.95);
-  border-color: rgba(94, 234, 212, 0.65);
+.hero-cta-btn-secondary.demo-btn {
+  width: auto !important;
+  max-width: max-content !important;
+  min-width: 0 !important;
+  flex: 0 0 auto !important;
+  padding: 0 1.65rem !important;
+  background: rgba(16, 35, 31, 0.85) !important;
+  color: #F4F7F5 !important;
+  border: 1px solid rgba(94, 234, 212, 0.35) !important;
+  border-radius: 0.875rem !important;
+  height: 3.25rem !important;
+  box-shadow: none !important;
+}
+
+.hero-cta-btn-secondary:hover,
+.hero-cta-btn-secondary.demo-btn:hover {
+  background: rgba(20, 48, 42, 0.95) !important;
+  border-color: rgba(94, 234, 212, 0.65) !important;
   transform: translateY(-2px);
   color: #FFFFFF !important;
 }
 
-.light .hero-cta-btn-secondary {
+.light .hero-cta-btn-secondary,
+.light .hero-cta-btn-secondary.demo-btn {
   background: #FFFFFF !important;
   color: #10221C !important;
-  border: 1px solid #D1DDD7;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid #D1DDD7 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
 }
 
-.light .hero-cta-btn-secondary:hover {
+.light .hero-cta-btn-secondary:hover,
+.light .hero-cta-btn-secondary.demo-btn:hover {
   background: #F4F7F5 !important;
-  border-color: #0D9488;
+  border-color: #0D9488 !important;
   color: #0D9488 !important;
 }
 
 @media (max-width: 639px) {
   .hero-cta-btn-primary,
-  .hero-cta-btn-secondary {
-    width: 100%;
-    min-width: 0;
+  .hero-cta-btn-secondary,
+  .hero-cta-btn-secondary.demo-btn {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
   }
 }
 

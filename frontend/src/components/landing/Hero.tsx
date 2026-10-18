@@ -198,7 +198,7 @@ export function Hero({
               initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.5 }}
-              className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto"
+              className="hero-cta-group mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-start gap-3.5 sm:gap-4 w-full sm:w-auto"
             >
               {/* Primary CTA */}
               <button
